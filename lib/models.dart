@@ -198,32 +198,3 @@ class Sponsor {
 
   factory Sponsor.fromJson(Map<String, dynamic> j) => Sponsor(_i(j['id']), _s(j['nome']), _s(j['sito']));
 }
-
-/// Utente collegato (GET /api/sessione).
-class Sessione {
-  final int id;
-  final String utente;
-  final List<String> ruoli;
-  final String rione;
-  final bool cambiaPassword;
-  Sessione({required this.id, required this.utente, required this.ruoli, required this.rione, required this.cambiaPassword});
-
-  factory Sessione.fromJson(Map<String, dynamic> j) => Sessione(
-        id: _i(j['id']),
-        utente: _s(j['utente']),
-        ruoli: [for (final r in (j['ruoli'] as List? ?? const [])) _s(r)],
-        rione: _s(j['rione']),
-        cambiaPassword: j['cambiaPassword'] == true,
-      );
-}
-
-/// Dati personali modificabili (GET/PUT /api/profilo).
-class Profilo {
-  final String nome;
-  final String cognome;
-  final String telefono;
-  Profilo({required this.nome, required this.cognome, required this.telefono});
-
-  factory Profilo.fromJson(Map<String, dynamic> j) =>
-      Profilo(nome: _s(j['nome']), cognome: _s(j['cognome']), telefono: _s(j['telefono']));
-}

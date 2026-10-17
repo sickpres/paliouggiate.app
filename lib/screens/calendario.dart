@@ -40,7 +40,8 @@ class _Elenco extends StatelessWidget {
         color: t.colorScheme.primaryContainer,
         margin: const EdgeInsets.fromLTRB(16, 12, 16, 4),
         child: ListTile(
-          leading: Icon(Icons.flag, color: t.colorScheme.onPrimaryContainer),
+          contentPadding: const EdgeInsets.fromLTRB(8, 8, 16, 8),
+          leading: Image.asset('assets/logo.png', width: 64, height: 64),
           title: Text(p.edizione.nome.isEmpty ? 'Palio dei rioni' : p.edizione.nome,
               style: TextStyle(fontWeight: FontWeight.w700, color: t.colorScheme.onPrimaryContainer)),
           subtitle: Text(intervallo(p.edizione.inizio, p.edizione.fine), style: TextStyle(color: t.colorScheme.onPrimaryContainer)),
