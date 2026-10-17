@@ -90,7 +90,7 @@ class _PaginaPallavoloState extends State<PaginaPallavolo> {
         if (c != null) Scrollable.ensureVisible(c, alignment: 0.5, duration: const Duration(milliseconds: 250));
       });
     }
-    final partite = sel == null ? d.cal.partite : d.cal.partite.where((p) => p.gioca(sel) || p.arbitro == sel).toList();
+    final partite = sel == null ? d.cal.partite : d.cal.partite.where((p) => p.gioca(sel)).toList();
 
     final righe = <Widget>[
       SizedBox(
@@ -135,14 +135,12 @@ class _PaginaPallavoloState extends State<PaginaPallavolo> {
       ));
     }
     if (info.isNotEmpty || sel != null) {
-      final giocate = sel == null ? 0 : partite.where((p) => p.gioca(sel)).length;
-      final arbitrate = sel == null ? 0 : partite.where((p) => p.arbitro == sel).length;
+      final delRione = partite.length;
       righe.add(Padding(
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
         child: Text(
           [
-            if (sel != null) '${rioni[sel]!.nome}: $giocate ${giocate == 1 ? 'partita' : 'partite'}'
-                '${arbitrate > 0 ? ', $arbitrate da arbitrare' : ''}',
+            if (sel != null) '${rioni[sel]!.nome}: $delRione ${delRione == 1 ? 'partita' : 'partite'}',
             if (info.isNotEmpty) info,
           ].join('\n'),
           style: t.textTheme.bodyMedium?.copyWith(color: t.colorScheme.onSurfaceVariant),
@@ -196,9 +194,7 @@ class _PartitaTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = Theme.of(context);
     final arbitro = p.arbitro == null ? null : rioni[p.arbitro];
-    final arbitraSel = sel != null && p.arbitro == sel;
     return Card(
-      color: arbitraSel ? t.colorScheme.tertiaryContainer : null,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
         child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -218,10 +214,7 @@ class _PartitaTile extends StatelessWidget {
               if (arbitri && arbitro != null)
                 Padding(
                   padding: const EdgeInsets.only(top: 6),
-                  child: Text('Arbitra ${arbitro.nome}',
-                      style: t.textTheme.bodySmall?.copyWith(
-                          fontWeight: arbitraSel ? FontWeight.w800 : FontWeight.w400,
-                          color: arbitraSel ? t.colorScheme.onTertiaryContainer : t.colorScheme.onSurfaceVariant)),
+                  child: Text('Arbitra ${arbitro.nome}', style: t.textTheme.bodySmall?.copyWith(color: t.colorScheme.onSurfaceVariant)),
                 ),
             ]),
           ),
