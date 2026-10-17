@@ -96,15 +96,6 @@ class _VistaMeseState extends State<_VistaMese> {
     _mese = DateTime(inizio.year, inizio.month);
   }
 
-  void _spostaMese(int n) {
-    final m = DateTime(_mese.year, _mese.month + n);
-    final conVoci = widget.p.voci.where((v) => v.data.year == m.year && v.data.month == m.month).toList();
-    setState(() {
-      _mese = m;
-      _giorno = conVoci.isEmpty ? m : _soloGiorno(conVoci.first.data);
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context);
@@ -176,8 +167,6 @@ class _VistaMeseState extends State<_VistaMese> {
               child: Text('${mesi[_mese.month - 1][0].toUpperCase()}${mesi[_mese.month - 1].substring(1)} ${_mese.year}',
                   style: t.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w800)),
             ),
-            IconButton(tooltip: 'Mese precedente', onPressed: () => _spostaMese(-1), icon: const IconaTratto('freccia_sinistra', lato: 26)),
-            IconButton(tooltip: 'Mese successivo', onPressed: () => _spostaMese(1), icon: const IconaTratto('freccia_destra', lato: 26)),
           ]),
         ),
         Padding(

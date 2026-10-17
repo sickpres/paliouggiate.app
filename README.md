@@ -12,7 +12,7 @@ API pubbliche del portale.
 | scheda | API del portale | note |
 | --- | --- | --- |
 | Home | `GET /api/config`, `GET /api/calendario`, `GET /api/telecronaca` | «Il Palio in diretta» (testo dell'IA del portale), appuntamenti di oggi (o il prossimo giorno di gare), conto alla rovescia, mappa dei rioni come sul portale (tocco = scheda del rione) |
-| Calendario | `GET /api/config`, `GET /api/calendario` | elenco completo oppure vista a mese (griglia dei giorni, sotto gli appuntamenti del giorno scelto), scelta ricordata sul telefono; da qui si apre la pallavolo |
+| Calendario | `GET /api/config`, `GET /api/calendario` | elenco completo oppure vista a mese (griglia dei giorni del mese degli appuntamenti, sotto quelli del giorno scelto), scelta ricordata sul telefono; da qui si apre la pallavolo |
 | Partite di pallavolo | `GET /api/partite/pallavolo`, `GET /api/rioni` | filtro per rione, ricordato sul telefono (`SharedPreferences`, chiave `rione_pallavolo`) |
 | Classifica | `GET /api/classifica/dettaglio`, `GET /api/archivio`, `GET /api/rioni` | edizione in corso (punti per gioco) e albo d'oro, con gli stemmi dei rioni |
 | Giochi | `GET /api/giochi`, `GET /api/calendario` | i giochi del programma con la ricerca; ogni gioco apre la sua pagina |
