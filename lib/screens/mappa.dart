@@ -17,6 +17,8 @@ String? _chiaveImpostata; // Google Maps accetta la chiave una volta sola per av
 const _provaSenzaStile = bool.fromEnvironment('PROVA_SENZA_STILE');
 // --dart-define=PROVA_ZOOM=11.5 porta la mappa a quello zoom dopo l'inquadratura
 const _provaZoom = String.fromEnvironment('PROVA_ZOOM');
+// --dart-define=PROVA_RIONE_MAPPA=Somoca apre la mappa con quel rione gia' scelto
+const _provaRioneMappa = String.fromEnvironment('PROVA_RIONE_MAPPA');
 
 /// Mappa a tutta pagina (Google Maps, stile dal portale) con i confini dei rioni e i loro stemmi.
 class PaginaMappa extends StatefulWidget {
@@ -32,7 +34,8 @@ class _PaginaMappaState extends State<PaginaMappa> {
   GoogleMapController? _mappa;
   bool _inquadrata = false;
   Set<int>? _visibili; // stemmi che non si sovrappongono allo zoom attuale
-  String? _scelto;
+  List<Rione> _rioni = const []; // elenco completo (foto simbolo, capo rione) per il riquadro in fondo
+  String? _scelto = _provaRioneMappa.isEmpty ? null : _provaRioneMappa;
 
   Future<ConfigMappa> _carica() async {
     final c = await Api.instance.mappa();
@@ -41,6 +44,9 @@ class _PaginaMappaState extends State<PaginaMappa> {
       _chiaveImpostata = c.chiaveIos;
     }
     _caricaStemmi(c);
+    rioniInCache().then((l) {
+      if (mounted) setState(() => _rioni = l);
+    }).catchError((_) {});
     return c;
   }
 
@@ -138,6 +144,35 @@ class _PaginaMappaState extends State<PaginaMappa> {
     );
   }
 
+  // riquadro del rione scelto: foto «simbolo» 16:9 (se c'e'), stemma, nome e capo rione
+  Widget _riquadro(BuildContext context, ConfigMappa c) {
+    final t = Theme.of(context);
+    final r = rionePerNome(_rioni, _scelto!) ?? rionePerNome([for (final x in c.rioni) x.rione], _scelto!);
+    return Card(
+      margin: EdgeInsets.zero,
+      clipBehavior: Clip.antiAlias,
+      child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        if (r != null && r.haSimbolo)
+          AspectRatio(
+            aspectRatio: 16 / 9,
+            child: Image.network(
+              Api.instance.simboloRione(r),
+              fit: BoxFit.cover,
+              loadingBuilder: (context, figlio, avanzamento) =>
+                  avanzamento == null ? figlio : ColoredBox(color: coloreHex(r.colore).withValues(alpha: 0.15)),
+              errorBuilder: (context, e, s) => const SizedBox.shrink(),
+            ),
+          ),
+        ListTile(
+          leading: SegnoRione(rione: r, colore: r?.colore ?? '', lato: 40),
+          title: Text(_scelto!, style: t.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+          subtitle: r != null && r.capoRione.isNotEmpty ? Text('Capo rione: ${r.capoRione}') : null,
+          trailing: IconButton(tooltip: 'Chiudi', icon: const Icon(Icons.close), onPressed: () => setState(() => _scelto = null)),
+        ),
+      ]),
+    );
+  }
+
   Widget _mappaConRioni(BuildContext context, ConfigMappa c) {
     final t = Theme.of(context);
     final limiti = _limiti(c);
@@ -219,20 +254,7 @@ class _PaginaMappaState extends State<PaginaMappa> {
             ),
           ),
         ),
-      if (_scelto != null)
-        Positioned(
-          left: 16,
-          right: 16,
-          bottom: 24,
-          child: Card(
-            margin: EdgeInsets.zero,
-            child: ListTile(
-              leading: SegnoRione(rione: rionePerNome([for (final r in c.rioni) r.rione], _scelto!), colore: '', lato: 40),
-              title: Text(_scelto!, style: t.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
-              trailing: IconButton(icon: const Icon(Icons.close), onPressed: () => setState(() => _scelto = null)),
-            ),
-          ),
-        ),
+      if (_scelto != null) Positioned(left: 16, right: 16, bottom: 24, child: _riquadro(context, c)),
     ]);
   }
 }
