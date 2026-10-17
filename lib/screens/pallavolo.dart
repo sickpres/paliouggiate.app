@@ -120,6 +120,19 @@ class _PaginaPallavoloState extends State<PaginaPallavolo> {
     ];
 
     final info = [d.cal.chi, d.cal.luogo].where((s) => s.isNotEmpty).join(' · ');
+    final giocate = d.cal.partite.where((p) => p.risultato.isNotEmpty).length;
+    if (giocate > 0) {
+      righe.add(Card(
+        color: t.colorScheme.secondaryContainer,
+        child: ListTile(
+          leading: Icon(d.cal.mancanti > 0 ? Icons.timelapse : Icons.flag, color: t.colorScheme.onSecondaryContainer),
+          title: Text(d.cal.mancanti > 0 ? 'Risultati provvisori' : 'Tutte le partite sono state giocate'),
+          subtitle: Text(d.cal.mancanti > 0
+              ? '$giocate ${giocate == 1 ? 'partita giocata' : 'partite giocate'}, ${ancoraDaGiocare(d.cal.mancanti, 'partite')} alla fine della gara.'
+              : 'La classifica finale è nella scheda Giochi.'),
+        ),
+      ));
+    }
     if (info.isNotEmpty || sel != null) {
       final giocate = sel == null ? 0 : partite.where((p) => p.gioca(sel)).length;
       final arbitrate = sel == null ? 0 : partite.where((p) => p.arbitro == sel).length;

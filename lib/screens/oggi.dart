@@ -5,15 +5,23 @@ import '../models.dart';
 import '../widgets/comuni.dart';
 import 'calendario.dart';
 
+// solo per le schermate di prova nel simulatore: --dart-define=PROVA_TELECRONACA="testo"
+const _provaTelecronaca = String.fromEnvironment('PROVA_TELECRONACA');
+
 class _Dati {
   final Edizione edizione;
   final List<Voce> voci;
-  _Dati(this.edizione, this.voci);
+  final Telecronaca? telecronaca;
+  _Dati(this.edizione, this.voci, this.telecronaca);
 }
 
 Future<_Dati> _carica() async {
-  final r = await Future.wait([Api.instance.edizione(), Api.instance.calendario()]);
-  return _Dati(r[0] as Edizione, r[1] as List<Voce>);
+  // la telecronaca e' un di piu': se non arriva la Home si mostra lo stesso
+  final tele = _provaTelecronaca.isNotEmpty
+      ? Future.value(Telecronaca(_provaTelecronaca, DateTime.now()))
+      : Api.instance.telecronaca().catchError((_) => null);
+  final r = await Future.wait<Object?>([Api.instance.edizione(), Api.instance.calendario(), tele]);
+  return _Dati(r[0] as Edizione, r[1] as List<Voce>, r[2] as Telecronaca?);
 }
 
 /// Scheda Home: gli appuntamenti di oggi o, se oggi non c'e' niente, il prossimo giorno di gare.
@@ -81,6 +89,7 @@ class _Contenuto extends StatelessWidget {
               ),
             ),
           ),
+        if (d.telecronaca != null) _SchedaTelecronaca(d.telecronaca!),
         Sezione('Oggi · ${giornoLungo(oggi)}'),
         if (diOggi.isEmpty)
           Padding(
@@ -95,6 +104,44 @@ class _Contenuto extends StatelessWidget {
           for (final v in prossimo) VoceTile(v),
         ],
       ],
+    );
+  }
+}
+
+class _SchedaTelecronaca extends StatelessWidget {
+  final Telecronaca tc;
+  const _SchedaTelecronaca(this.tc);
+
+  String _quando() {
+    final c = tc.creato;
+    if (c == null) return '';
+    final ora = '${c.hour.toString().padLeft(2, '0')}:${c.minute.toString().padLeft(2, '0')}';
+    return stessoGiorno(c, DateTime.now()) ? 'Aggiornata oggi alle $ora' : 'Aggiornata ${giornoLungo(c).toLowerCase()} alle $ora';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context);
+    final q = _quando();
+    return Card(
+      margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      color: t.colorScheme.primary,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Icon(Icons.mic, size: 20, color: t.colorScheme.secondaryContainer),
+            const SizedBox(width: 8),
+            Text('TELECRONACA',
+                style: t.textTheme.labelLarge?.copyWith(color: t.colorScheme.secondaryContainer, letterSpacing: 1.2, fontWeight: FontWeight.w800)),
+          ]),
+          const SizedBox(height: 8),
+          Text(tc.testo, style: t.textTheme.bodyLarge?.copyWith(color: t.colorScheme.onPrimary, height: 1.4)),
+          const SizedBox(height: 8),
+          Text([if (q.isNotEmpty) q, "testo scritto dall'IA"].join(' · '),
+              style: t.textTheme.bodySmall?.copyWith(color: t.colorScheme.onPrimary.withValues(alpha: 0.7))),
+        ]),
+      ),
     );
   }
 }

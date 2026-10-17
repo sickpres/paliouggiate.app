@@ -32,9 +32,10 @@ Future<_Dati> _carica() async {
     schede.add(_Scheda(g.nome, g.tipo, perGioco.remove(g.id) ?? const [], g));
   }
   perGioco.forEach((_, s) => schede.add(_Scheda(s.first.titolo, s.first.tipo, s, null)));
-  // prima i giochi con i risultati, poi gli altri in ordine di data
+  // prima i giochi conclusi, poi quelli in corso, poi gli altri; a parita' in ordine di data
+  int peso(_Scheda s) => s.risultati == null ? 2 : (s.risultati!.parziale ? 1 : 0);
   schede.sort((a, b) {
-    if ((a.risultati == null) != (b.risultati == null)) return a.risultati != null ? -1 : 1;
+    if (peso(a) != peso(b)) return peso(a) - peso(b);
     final da = a.sessioni.isEmpty ? DateTime(9999) : a.sessioni.first.data;
     final db = b.sessioni.isEmpty ? DateTime(9999) : b.sessioni.first.data;
     return da.compareTo(db);
@@ -65,7 +66,7 @@ class PaginaGiochi extends StatelessWidget {
               if (conRisultati == 0)
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-                  child: Text('I risultati di ogni gioco compariranno qui appena saranno pubblicati.',
+                  child: Text('I risultati di ogni gioco compariranno qui man mano che vengono inseriti.',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
                 ),
               for (final s in d.schede) _SchedaGioco(s, d.rioni),
@@ -104,7 +105,7 @@ class _SchedaGioco extends StatelessWidget {
           ),
           title: Text(s.nome, style: t.textTheme.titleMedium),
           subtitle: Text([quando, if (chi.isNotEmpty) chi].where((x) => x.isNotEmpty).join(' · ')),
-          trailing: g != null ? Chip(label: const Text('Risultati'), visualDensity: VisualDensity.compact) : null,
+          trailing: g != null ? Chip(label: Text(g.parziale ? 'In corso' : 'Risultati'), visualDensity: VisualDensity.compact) : null,
           childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
           expandedCrossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -119,7 +120,16 @@ class _SchedaGioco extends StatelessWidget {
               )
             else ...[
               const SizedBox(height: 8),
-              Text('Classifica', style: t.textTheme.titleSmall),
+              Text(g.parziale ? 'Classifica provvisoria' : 'Classifica', style: t.textTheme.titleSmall),
+              if (g.parziale)
+                Padding(
+                  padding: const EdgeInsets.only(top: 2, bottom: 4),
+                  child: Text(
+                      g.mancanti > 0
+                          ? 'Gara in corso: ${ancoraDaGiocare(g.mancanti, g.unita)} alla fine. I punti del Palio si assegnano a gara conclusa.'
+                          : 'Tutti i risultati sono inseriti: si attende la conferma per assegnare i punti del Palio.',
+                      style: t.textTheme.bodySmall?.copyWith(fontStyle: FontStyle.italic)),
+                ),
               for (final p in g.classifica)
                 ListTile(
                   contentPadding: EdgeInsets.zero,
@@ -133,7 +143,7 @@ class _SchedaGioco extends StatelessWidget {
                   ),
                   title: Text(p.nome),
                   subtitle: p.dettaglio.isEmpty ? null : Text(p.dettaglio),
-                  trailing: Text('${p.punti} pt', style: t.textTheme.titleSmall),
+                  trailing: p.punti == null ? null : Text('${p.punti} pt', style: t.textTheme.titleSmall),
                 ),
               for (final gr in g.dettaglio.where((x) => x.righe.isNotEmpty)) ...[
                 const SizedBox(height: 8),

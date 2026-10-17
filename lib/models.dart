@@ -134,7 +134,7 @@ class PostoGioco {
   final int posizione;
   final String nome;
   final String colore;
-  final int punti;
+  final int? punti; // null nei giochi in corso: i punti del Palio arrivano a gioco concluso
   final String dettaglio;
   PostoGioco(this.rioneId, this.posizione, this.nome, this.colore, this.punti, this.dettaglio);
 }
@@ -145,8 +145,11 @@ class GruppoRisultati {
   GruppoRisultati(this.gruppo, this.righe);
 }
 
-/// Un gioco pubblicato, con la sua classifica (GET /api/giochi).
+/// Un gioco con la sua classifica (GET /api/giochi): concluso e pubblicato, oppure in corso (parziale).
 class Gioco {
+  final bool parziale;
+  final int mancanti;
+  final String unita; // 'partite' | 'risultati'
   final int id;
   final String tipo;
   final String nome;
@@ -158,6 +161,9 @@ class Gioco {
   final List<PostoGioco> classifica;
   final List<GruppoRisultati> dettaglio;
   Gioco({
+    this.parziale = false,
+    this.mancanti = 0,
+    this.unita = 'risultati',
     required this.id,
     required this.tipo,
     required this.nome,
@@ -171,6 +177,9 @@ class Gioco {
   });
 
   factory Gioco.fromJson(Map<String, dynamic> j) => Gioco(
+        parziale: j['parziale'] == true,
+        mancanti: _i(j['mancanti']),
+        unita: _s(j['unita']).isEmpty ? 'risultati' : _s(j['unita']),
         id: _i(j['id']),
         tipo: _s(j['tipo']),
         nome: _s(j['nome']),
@@ -181,7 +190,7 @@ class Gioco {
         luogo: _s(j['luogo']),
         classifica: [
           for (final c in (j['classifica'] as List? ?? const []))
-            PostoGioco(_i(c['rione_id']), _i(c['posizione']), _s(c['nome']), _s(c['colore']), _i(c['punti']), _s(c['dettaglio']))
+            PostoGioco(_i(c['rione_id']), _i(c['posizione']), _s(c['nome']), _s(c['colore']), c['punti'] == null ? null : _i(c['punti']), _s(c['dettaglio']))
         ],
         dettaglio: [
           for (final d in (j['dettaglio'] as List? ?? const []))
@@ -239,8 +248,9 @@ class CalendarioPartite {
   final String luogo;
   final String chi;
   final bool arbitri;
+  final int mancanti; // partite ancora da giocare
   final List<Partita> partite;
-  CalendarioPartite({required this.nome, required this.luogo, required this.chi, required this.arbitri, required this.partite});
+  CalendarioPartite({required this.nome, required this.luogo, required this.chi, required this.arbitri, required this.mancanti, required this.partite});
 
   factory CalendarioPartite.fromJson(Map<String, dynamic> j) {
     final g = j['gioco'] is Map ? Map<String, dynamic>.from(j['gioco'] as Map) : const <String, dynamic>{};
@@ -249,7 +259,23 @@ class CalendarioPartite {
       luogo: _s(g['luogo']),
       chi: _s(g['chi']),
       arbitri: j['arbitri'] == true,
+      mancanti: _i(j['mancanti']),
       partite: [for (final p in (j['partite'] as List? ?? const [])) Partita.fromJson(Map<String, dynamic>.from(p as Map))],
     );
   }
+}
+
+/// Telecronaca scritta dall'IA del portale (GET /api/telecronaca).
+class Telecronaca {
+  final String testo;
+  final DateTime? creato;
+  Telecronaca(this.testo, this.creato);
+
+  factory Telecronaca.fromJson(Map<String, dynamic> j) => Telecronaca(_s(j['testo']), DateTime.tryParse(_s(j['creato']))?.toLocal());
+}
+
+/// «mancano ancora 3 partite» / «manca ancora 1 risultato»
+String ancoraDaGiocare(int n, String unita) {
+  final u = unita == 'partite' ? (n == 1 ? 'partita' : 'partite') : (n == 1 ? 'risultato' : 'risultati');
+  return '${n == 1 ? 'manca' : 'mancano'} ancora $n $u';
 }
