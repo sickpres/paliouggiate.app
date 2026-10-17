@@ -31,24 +31,6 @@ Color coloreHex(String hex, [Color altrimenti = Colors.grey]) {
   return Color(0xFF000000 | v);
 }
 
-IconData iconaGioco(String tipo) => switch (tipo) {
-      'pallavolo' => Icons.sports_volleyball,
-      'calcio_bambini' || 'faigol' => Icons.sports_soccer,
-      'calcio_balilla' => Icons.table_bar,
-      'ping_pong' => Icons.sports_tennis,
-      'scacchi' => Icons.grid_on,
-      'burraco' || 'scala40' => Icons.style,
-      'memory' => Icons.psychology,
-      'quizzone' => Icons.quiz,
-      'balli' => Icons.music_note,
-      'staffetta' || 'staffetta_simpaticona' => Icons.directions_run,
-      'caccia_al_tesoro' => Icons.travel_explore,
-      'tappeto_volante' => Icons.airline_seat_flat,
-      'passa_la_palla' => Icons.sports_handball,
-      'infila_la_penna' => Icons.edit,
-      _ => Icons.emoji_events_outlined,
-    };
-
 // ---------- rioni: si caricano una volta e servono per stemmi e colori ----------
 Future<List<Rione>>? _rioni;
 

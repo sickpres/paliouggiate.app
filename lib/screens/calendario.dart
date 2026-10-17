@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../api.dart';
 import '../models.dart';
 import '../widgets/comuni.dart';
+import '../widgets/icone_tratto.dart';
 import 'pallavolo.dart';
 
 class _Programma {
@@ -108,8 +109,9 @@ class VoceTile extends StatelessWidget {
             CircleAvatar(
               radius: 18,
               backgroundColor: v.evento ? t.colorScheme.tertiaryContainer : t.colorScheme.secondaryContainer,
-              child: Icon(v.evento ? Icons.celebration : iconaGioco(v.tipo),
-                  size: 20, color: v.evento ? t.colorScheme.onTertiaryContainer : t.colorScheme.onSecondaryContainer),
+              child: v.evento
+                  ? Icon(Icons.celebration, size: 20, color: t.colorScheme.onTertiaryContainer)
+                  : IconaGioco(v.tipo, lato: 20, colore: t.colorScheme.onSecondaryContainer),
             ),
             const SizedBox(width: 12),
             Expanded(

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../api.dart';
 import '../models.dart';
 import '../widgets/comuni.dart';
+import '../widgets/icone_tratto.dart';
 import '../widgets/testo_ricco.dart';
 import 'calendario.dart';
 
@@ -44,11 +45,11 @@ class _PaginaGiocoState extends State<PaginaGioco> {
   // menu in basso, come quello principale
   int _scheda = _provaTab.clamp(0, 4);
   static const _voci = [
-    NavigationDestination(icon: Icon(Icons.info_outline), selectedIcon: Icon(Icons.info), label: 'Info'),
-    NavigationDestination(icon: Icon(Icons.leaderboard_outlined), selectedIcon: Icon(Icons.leaderboard), label: 'Classifica'),
-    NavigationDestination(icon: Icon(Icons.menu_book_outlined), selectedIcon: Icon(Icons.menu_book), label: 'Regolamento'),
-    NavigationDestination(icon: Icon(Icons.rule), selectedIcon: Icon(Icons.rule), label: 'Criteri'),
-    NavigationDestination(icon: Icon(Icons.emoji_events_outlined), selectedIcon: Icon(Icons.emoji_events), label: 'Punteggio'),
+    VoceMenu('info', 'Info'),
+    VoceMenu('classifica_gioco', 'Classifica'),
+    VoceMenu('regolamento_gioco', 'Regolamento'),
+    VoceMenu('criteri', 'Criteri'),
+    VoceMenu('punteggio', 'Punteggio'),
   ];
 
   @override
@@ -56,17 +57,12 @@ class _PaginaGiocoState extends State<PaginaGioco> {
     return Scaffold(
       appBar: AppBar(
         title: Row(children: [
-          Icon(iconaGioco(_gioco?.tipo ?? widget.tipo), size: 22),
+          IconaGioco(_gioco?.tipo ?? widget.tipo, lato: 22),
           const SizedBox(width: 10),
           Expanded(child: Text(_gioco?.nome ?? widget.nome, overflow: TextOverflow.ellipsis)),
         ]),
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _scheda,
-        onDestinationSelected: (i) => setState(() => _scheda = i),
-        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-        destinations: _voci,
-      ),
+      bottomNavigationBar: MenuInBasso(scelta: _scheda, onScegli: (i) => setState(() => _scheda = i), voci: _voci),
       body: FutureBuilder<(SchedaGioco, List<Rione>)>(
         future: _futuro,
         builder: (context, s) {

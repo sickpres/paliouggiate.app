@@ -12,6 +12,7 @@ const crema = Color(0xFFFEF8E2);
 // azzurro del cielo del logo (#63B9F2) schiarito con il 75% di bianco
 const cielo = Color(0xFFD8EDFC);
 const rosso = Color(0xFFC62B2B);
+const menuSpento = Color(0xFF5C7491); // voci del menu non scelte
 
 void main() {
   // solo in verticale (anche in Info.plist)
@@ -71,20 +72,22 @@ class PalioApp extends StatelessWidget {
         scrolledUnderElevation: 2,
       ),
       // menu in basso blu notte: voce scelta in oro, le altre in bianco
+      // menu in basso in stile app Sisal: barra bianca alta 60, nessuna pillola, icone a tratto da 24,
+      // etichette da 13; la voce scelta in blu notte e grassetto, le altre in grigio-azzurro
       navigationBarTheme: NavigationBarThemeData(
-        height: 62, // piu' basso dei 80 standard
-        backgroundColor: chiaro ? bluNotte : schema.surfaceContainer,
-        indicatorColor: chiaro ? oro : schema.secondaryContainer,
-        iconTheme: chiaro
-            ? WidgetStateProperty.resolveWith((s) =>
-                IconThemeData(size: 22, color: s.contains(WidgetState.selected) ? bluNotte : Colors.white.withValues(alpha: 0.85)))
-            : null,
-        labelTextStyle: chiaro
-            ? WidgetStateProperty.resolveWith((s) => TextStyle(
-                fontSize: 11,
-                color: s.contains(WidgetState.selected) ? oro : Colors.white.withValues(alpha: 0.85),
-                fontWeight: s.contains(WidgetState.selected) ? FontWeight.w700 : FontWeight.w500))
-            : null,
+        height: 60,
+        elevation: 0,
+        backgroundColor: chiaro ? Colors.white : schema.surfaceContainer,
+        surfaceTintColor: Colors.transparent,
+        indicatorColor: Colors.transparent,
+        overlayColor: WidgetStateProperty.all(Colors.transparent),
+        iconTheme: WidgetStateProperty.resolveWith((s) => IconThemeData(
+            size: 24, color: s.contains(WidgetState.selected) ? (chiaro ? bluNotte : oro) : (chiaro ? menuSpento : Colors.white70))),
+        labelTextStyle: WidgetStateProperty.resolveWith((s) => TextStyle(
+            fontSize: 13,
+            height: 1.1,
+            color: s.contains(WidgetState.selected) ? (chiaro ? bluNotte : oro) : (chiaro ? menuSpento : Colors.white70),
+            fontWeight: s.contains(WidgetState.selected) ? FontWeight.w700 : FontWeight.w500)),
       ),
       cardTheme: CardThemeData(
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),

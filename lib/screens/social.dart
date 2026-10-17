@@ -41,8 +41,6 @@ const _canali = [
       _Marchio(Icons.facebook, _blu)),
   _Canale('@palio.uggiateconronago', 'Instagram', 'https://www.instagram.com/palio.uggiateconronago/',
       _Marchio(Icons.photo_camera_outlined, _instagram)),
-  _Canale('Comune di Uggiate con Ronago', 'Facebook', 'https://www.facebook.com/profile.php?id=61573073244162&locale=it_IT',
-      _Marchio(Icons.facebook, _blu)),
 ];
 
 /// Scheda Social: le pagine del Palio e, se il portale ne pubblica, gli sponsor.

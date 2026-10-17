@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../promemoria.dart';
+import '../widgets/icone_tratto.dart';
 import 'calendario.dart';
 import 'classifica.dart';
 import 'giochi.dart';
@@ -47,16 +48,15 @@ class _HomeState extends State<Home> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: IndexedStack(index: _scheda, children: _pagine),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _scheda,
-        onDestinationSelected: (i) => setState(() => _scheda = i),
-        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Home'),
-          NavigationDestination(icon: Icon(Icons.calendar_month_outlined), selectedIcon: Icon(Icons.calendar_month), label: 'Calendario'),
-          NavigationDestination(icon: Icon(Icons.emoji_events_outlined), selectedIcon: Icon(Icons.emoji_events), label: 'Classifica'),
-          NavigationDestination(icon: Icon(Icons.sports_outlined), selectedIcon: Icon(Icons.sports), label: 'Giochi'),
-          NavigationDestination(icon: Icon(Icons.public_outlined), selectedIcon: Icon(Icons.public), label: 'Social'),
+      bottomNavigationBar: MenuInBasso(
+        scelta: _scheda,
+        onScegli: (i) => setState(() => _scheda = i),
+        voci: const [
+          VoceMenu('home', 'Home'),
+          VoceMenu('calendario_menu', 'Calendario'),
+          VoceMenu('classifica_menu', 'Classifica'),
+          VoceMenu('giochi_menu', 'Giochi'),
+          VoceMenu('social_menu', 'Social'),
         ],
       ),
     );

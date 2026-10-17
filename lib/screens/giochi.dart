@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../api.dart';
 import '../models.dart';
 import '../widgets/comuni.dart';
+import '../widgets/icone_tratto.dart';
 import 'gioco.dart';
 
 // --dart-define=PROVA_CERCA=testo scrive nel campo di ricerca; PROVA_GIOCO=id apre la pagina del gioco (schermate di prova)
@@ -164,7 +165,7 @@ class _RigaGioco extends StatelessWidget {
         onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => PaginaGioco(id: s.id, nome: s.nome, tipo: s.tipo))),
         leading: CircleAvatar(
           backgroundColor: g != null ? t.colorScheme.primaryContainer : t.colorScheme.surfaceContainerHighest,
-          child: Icon(iconaGioco(s.tipo), color: g != null ? t.colorScheme.onPrimaryContainer : t.colorScheme.onSurfaceVariant),
+          child: IconaGioco(s.tipo, lato: 22, colore: g != null ? t.colorScheme.onPrimaryContainer : t.colorScheme.onSurfaceVariant),
         ),
         title: Text(s.nome, style: t.textTheme.titleMedium),
         subtitle: Text([quando, if (s.chi.isNotEmpty) s.chi].where((x) => x.isNotEmpty).join(' · ')),
