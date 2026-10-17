@@ -135,7 +135,7 @@ class _SchedaTelecronaca extends StatelessWidget {
     final c = tc.creato;
     if (c == null) return '';
     final ora = '${c.hour.toString().padLeft(2, '0')}:${c.minute.toString().padLeft(2, '0')}';
-    return stessoGiorno(c, DateTime.now()) ? 'Aggiornata oggi alle $ora' : 'Aggiornata ${giornoLungo(c).toLowerCase()} alle $ora';
+    return stessoGiorno(c, DateTime.now()) ? 'Ultimo aggiornamento oggi alle $ora' : 'Ultimo aggiornamento ${giornoLungo(c).toLowerCase()} alle $ora';
   }
 
   @override
