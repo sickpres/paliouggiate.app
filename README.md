@@ -12,7 +12,7 @@ API pubbliche del portale.
 | scheda | API del portale | note |
 | --- | --- | --- |
 | Home | `GET /api/config`, `GET /api/calendario`, `GET /api/telecronaca` | «Il Palio in diretta» (testo dell'IA del portale), appuntamenti di oggi (o il prossimo giorno di gare), conto alla rovescia, mappa dei rioni come sul portale (tocco = scheda del rione) |
-| Calendario | `GET /api/config`, `GET /api/calendario` | giorni e orari in ora italiana, così come li manda il portale; da qui si apre la pallavolo |
+| Calendario | `GET /api/config`, `GET /api/calendario` | elenco completo oppure vista a mese (griglia dei giorni, sotto gli appuntamenti del giorno scelto), scelta ricordata sul telefono; da qui si apre la pallavolo |
 | Partite di pallavolo | `GET /api/partite/pallavolo`, `GET /api/rioni` | filtro per rione, ricordato sul telefono (`SharedPreferences`, chiave `rione_pallavolo`) |
 | Classifica | `GET /api/classifica/dettaglio`, `GET /api/archivio`, `GET /api/rioni` | edizione in corso (punti per gioco) e albo d'oro, con gli stemmi dei rioni |
 | Giochi | `GET /api/giochi`, `GET /api/calendario` | i giochi del programma con la ricerca; ogni gioco apre la sua pagina |
@@ -47,4 +47,4 @@ produce `dist/PalioUggiate.ipa`, non firmato, da installare con Sideloadly.
 
 Per fotografare una scheda nel simulatore senza toccarlo:
 `flutter build ios --simulator --debug --dart-define=PROVA_SCHEDA=n` (0–4). Altri interruttori di prova:
-`PROVA_OGGI=2027-07-03` (data simulata), `PROVA_PALLAVOLO=true` (apre la pallavolo), `PROVA_RIONE=id` (sceglie un rione nel filtro), `PROVA_TELECRONACA=testo` (telecronaca finta), `PROVA_FONDO=true` (Home in fondo), `PROVA_MAPPA=Somoca` (rione scelto sulla mappa), `PROVA_CERCA=testo` (ricerca nei giochi), `PROVA_GIOCO=id` e `PROVA_TAB_GIOCO=n` (pagina di un gioco).
+`PROVA_OGGI=2027-07-03` (data simulata), `PROVA_PALLAVOLO=true` (apre la pallavolo), `PROVA_RIONE=id` (sceglie un rione nel filtro), `PROVA_TELECRONACA=testo` (telecronaca finta), `PROVA_FONDO=true` (Home in fondo), `PROVA_MAPPA=Somoca` (rione scelto sulla mappa), `PROVA_CERCA=testo` (ricerca nei giochi), `PROVA_GIOCO=id` e `PROVA_TAB_GIOCO=n` (pagina di un gioco), `PROVA_MESE=true` (calendario a mese).

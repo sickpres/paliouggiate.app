@@ -84,12 +84,6 @@ class _Generale extends StatelessWidget {
       physics: const AlwaysScrollableScrollPhysics(),
       children: [
         Sezione(d.edizione.nome.isEmpty ? 'Classifica generale' : 'Classifica generale · ${d.edizione.nome}'),
-        if (!c.iniziata)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-            child: Text('Le gare non sono ancora iniziate: i punti compariranno qui man mano che i giochi vengono pubblicati.',
-                style: t.textTheme.bodyMedium?.copyWith(color: t.colorScheme.onSurfaceVariant)),
-          ),
         for (var i = 0; i < c.righe.length; i++)
           Card(
             child: Theme(
