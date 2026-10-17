@@ -5,6 +5,7 @@ import '../api.dart';
 import '../models.dart';
 import '../widgets/comuni.dart';
 import '../widgets/icone_tratto.dart';
+import 'gioco.dart';
 import 'pallavolo.dart';
 
 class _Programma {
@@ -275,7 +276,7 @@ class _Elenco extends StatelessWidget {
 void apriPallavolo(BuildContext context) =>
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PaginaPallavolo()));
 
-/// Una voce del programma; la pallavolo apre il calendario delle partite.
+/// Una voce del programma: un gioco apre la sua pagina, la pallavolo il calendario delle partite.
 class VoceTile extends StatelessWidget {
   final Voce v;
   const VoceTile(this.v, {super.key});
@@ -285,10 +286,16 @@ class VoceTile extends StatelessWidget {
     final t = Theme.of(context);
     final dettagli = [v.chi, v.luogo].where((s) => s.isNotEmpty).join(' · ');
     final partite = v.tipo == 'pallavolo';
+    final gioco = !v.evento && v.giocoId != null && !partite;
+    final apri = partite
+        ? () => apriPallavolo(context)
+        : gioco
+            ? () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => PaginaGioco(id: v.giocoId!, nome: v.titolo, tipo: v.tipo)))
+            : null;
     return Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: partite ? () => apriPallavolo(context) : null,
+        onTap: apri,
         child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
         child: Row(
@@ -324,7 +331,7 @@ class VoceTile extends StatelessWidget {
                 ],
               ),
             ),
-            if (partite) Icon(Icons.chevron_right, color: t.colorScheme.onSurfaceVariant),
+            if (apri != null) Icon(Icons.chevron_right, color: t.colorScheme.onSurfaceVariant),
           ],
         ),
       ),
