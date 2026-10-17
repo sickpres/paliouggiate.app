@@ -35,7 +35,8 @@ class _PaginaMappaState extends State<PaginaMappa> {
   bool _inquadrata = false;
   Set<int>? _visibili; // stemmi che non si sovrappongono allo zoom attuale
   List<Rione> _rioni = const []; // elenco completo (foto simbolo, capo rione) per il riquadro in fondo
-  String? _scelto = _provaRioneMappa.isEmpty ? null : _provaRioneMappa;
+  String? _scelto;
+  bool _provaFatta = false;
 
   Future<ConfigMappa> _carica() async {
     final c = await Api.instance.mappa();
@@ -173,8 +174,29 @@ class _PaginaMappaState extends State<PaginaMappa> {
     );
   }
 
+  // spazio occupato in fondo dal riquadro del rione: margine 24 + foto 16:9 (se c'e') + riga del nome 72 + 12 d'aria
+  double _spazioRiquadro(BuildContext context, String nome) {
+    final r = rionePerNome(_rioni, nome);
+    final largo = MediaQuery.sizeOf(context).width - 32;
+    return 24 + (r != null && r.haSimbolo ? largo * 9 / 16 : 0) + 72 + 12;
+  }
+
+  // Tocco su un rione: si apre il riquadro e il rione va al centro dello spazio che resta sopra. La mappa riceve un
+  // margine in basso alto quanto il riquadro, cosi' Google Maps inquadra solo nella parte libera.
+  void _seleziona(ConfigMappa c, String? nome) {
+    setState(() => _scelto = nome);
+    if (nome == null) return;
+    final r = c.rioni.where((x) => x.rione.nome == nome).firstOrNull;
+    if (r == null || r.anelli.isEmpty) return;
+    final punti = [for (final a in r.anelli) ...a];
+    final lat = punti.map((p) => p.$1), lng = punti.map((p) => p.$2);
+    final limiti = LatLngBounds(
+        southwest: LatLng(lat.reduce(math.min), lng.reduce(math.min)), northeast: LatLng(lat.reduce(math.max), lng.reduce(math.max)));
+    // dopo il ridisegno, quando la mappa ha gia' il margine nuovo
+    WidgetsBinding.instance.addPostFrameCallback((_) => _mappa?.animateCamera(CameraUpdate.newLatLngBounds(limiti, 40)));
+  }
+
   Widget _mappaConRioni(BuildContext context, ConfigMappa c) {
-    final t = Theme.of(context);
     final limiti = _limiti(c);
     final poligoni = <Polygon>{};
     final segni = <Marker>{};
@@ -190,7 +212,7 @@ class _PaginaMappaState extends State<PaginaMappa> {
           strokeColor: col,
           strokeWidth: scelto ? 4 : 2,
           consumeTapEvents: true,
-          onTap: () => setState(() => _scelto = scelto ? null : r.rione.nome),
+          onTap: () => _seleziona(c, scelto ? null : r.rione.nome),
         ));
       }
       if (r.anelli.isNotEmpty) {
@@ -202,7 +224,7 @@ class _PaginaMappaState extends State<PaginaMappa> {
           anchor: const Offset(0.5, 0.5),
           visible: visibili.contains(r.rione.id),
           infoWindow: InfoWindow(title: r.rione.nome),
-          onTap: () => setState(() => _scelto = r.rione.nome),
+          onTap: () => _seleziona(c, r.rione.nome),
         ));
       }
     }
@@ -216,6 +238,7 @@ class _PaginaMappaState extends State<PaginaMappa> {
             zoom: 13.5),
         polygons: poligoni,
         markers: segni,
+        padding: EdgeInsets.only(bottom: _scelto == null ? 0 : _spazioRiquadro(context, _scelto!)),
         myLocationButtonEnabled: false,
         mapToolbarEnabled: false,
         zoomControlsEnabled: false,
@@ -227,6 +250,11 @@ class _PaginaMappaState extends State<PaginaMappa> {
         },
         // tutti i rioni nello schermo: la prima volta che la mappa e' ferma (prima non conosce ancora le sue misure)
         onCameraIdle: () {
+          // prova nel simulatore: dopo l'inquadratura iniziale si sceglie il rione come con un tocco
+          if (_inquadrata && _provaRioneMappa.isNotEmpty && !_provaFatta) {
+            _provaFatta = true;
+            _seleziona(c, _provaRioneMappa);
+          }
           if (_inquadrata || limiti == null || _mappa == null) return;
           _inquadrata = true;
           _mappa!.animateCamera(_provaZoom.isEmpty
@@ -237,23 +265,6 @@ class _PaginaMappaState extends State<PaginaMappa> {
         },
         onTap: (_) => setState(() => _scelto = null),
       ),
-      if (c.approssimati)
-        Positioned(
-          left: 12,
-          right: 12,
-          top: 12,
-          child: Center(
-            child: Material(
-              color: t.colorScheme.surfaceContainerLowest.withValues(alpha: 0.92),
-              borderRadius: BorderRadius.circular(20),
-              elevation: 2,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                child: Text('Confini dei rioni indicativi', style: t.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600)),
-              ),
-            ),
-          ),
-        ),
       if (_scelto != null) Positioned(left: 16, right: 16, bottom: 24, child: _riquadro(context, c)),
     ]);
   }
