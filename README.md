@@ -11,7 +11,7 @@ API pubbliche del portale.
 
 | scheda | API del portale | note |
 | --- | --- | --- |
-| Home | `GET /api/config`, `GET /api/calendario`, `GET /api/telecronaca` | telecronaca scritta dall'IA del portale, appuntamenti di oggi (o il prossimo giorno di gare), conto alla rovescia |
+| Home | `GET /api/config`, `GET /api/calendario`, `GET /api/telecronaca` | «Il Palio in diretta», testo scritto dall'IA del portale, appuntamenti di oggi (o il prossimo giorno di gare), conto alla rovescia |
 | Calendario | `GET /api/config`, `GET /api/calendario` | giorni e orari in ora italiana, così come li manda il portale; da qui si apre la pallavolo |
 | Partite di pallavolo | `GET /api/partite/pallavolo`, `GET /api/rioni` | filtro per rione, ricordato sul telefono (`SharedPreferences`, chiave `rione_pallavolo`) |
 | Classifica | `GET /api/classifica/dettaglio`, `GET /api/archivio`, `GET /api/rioni` | edizione in corso (punti per gioco) e albo d'oro, con gli stemmi dei rioni |

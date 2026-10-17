@@ -132,7 +132,7 @@ class _SchedaTelecronaca extends StatelessWidget {
           Row(children: [
             Icon(Icons.mic, size: 20, color: t.colorScheme.secondaryContainer),
             const SizedBox(width: 8),
-            Text('TELECRONACA',
+            Text('IL PALIO IN DIRETTA',
                 style: t.textTheme.labelLarge?.copyWith(color: t.colorScheme.secondaryContainer, letterSpacing: 1.2, fontWeight: FontWeight.w800)),
           ]),
           const SizedBox(height: 8),
