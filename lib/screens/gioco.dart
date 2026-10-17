@@ -89,13 +89,25 @@ class _PaginaGiocoState extends State<PaginaGioco> {
               key: PageStorageKey(_scheda), // ogni voce ricorda dove era arrivata
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.only(bottom: 24),
-              children: figli,
+              children: [if (g.haFoto) _testata(g), ...figli],
             ),
           );
         },
       ),
     );
   }
+
+  // foto 16:9 del gioco in testa a ogni voce del menu; scorre via con il contenuto
+  Widget _testata(SchedaGioco g) => AspectRatio(
+        aspectRatio: 16 / 9,
+        child: Image.network(
+          Api.instance.fotoGioco(g),
+          fit: BoxFit.cover,
+          loadingBuilder: (context, figlio, avanzamento) =>
+              avanzamento == null ? figlio : ColoredBox(color: Theme.of(context).colorScheme.surfaceContainerHighest),
+          errorBuilder: (context, e, s) => const SizedBox.shrink(),
+        ),
+      );
 
   List<Widget> _quando(BuildContext context, SchedaGioco g) {
     final t = Theme.of(context);

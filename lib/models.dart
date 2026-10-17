@@ -355,6 +355,8 @@ class SchedaGioco {
   final bool haPartite;
   final List<Appuntamento> appuntamenti;
   final ClassificaGioco? classifica;
+  final bool haFoto; // foto 16:9 caricata dal pannello, in testa alla pagina del gioco
+  final String fotoVersione;
   SchedaGioco({
     required this.id,
     required this.tipo,
@@ -367,6 +369,8 @@ class SchedaGioco {
     required this.haPartite,
     required this.appuntamenti,
     required this.classifica,
+    this.haFoto = false,
+    this.fotoVersione = '',
   });
 
   factory SchedaGioco.fromJson(Map<String, dynamic> j) {
@@ -381,6 +385,8 @@ class SchedaGioco {
       criteri: _s(j['criteri']),
       puntiPosizioni: [for (final x in (j['punti_posizioni'] as List? ?? const [])) _i(x)],
       haPartite: j['partite'] == true,
+      haFoto: j['ha_foto'] == true,
+      fotoVersione: _s(j['foto_versione']),
       appuntamenti: [
         for (final a in (j['sessioni'] as List? ?? const []))
           if (DateTime.tryParse(_s(a['data'])) != null)
