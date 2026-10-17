@@ -7,6 +7,7 @@ import 'screens/home.dart';
 const bluNotte = Color(0xFF062246);
 const oro = Color(0xFFFEAB06);
 const crema = Color(0xFFFEF8E2);
+const cielo = Color(0xFF63B9F2);
 const rosso = Color(0xFFC62B2B);
 
 void main() => runApp(const PalioApp());
@@ -30,12 +31,17 @@ class PalioApp extends StatelessWidget {
             tertiary: rosso,
             tertiaryContainer: const Color(0xFFFADAD7),
             onTertiaryContainer: const Color(0xFF5C0F0F),
-            surface: crema,
+            // sfondo delle pagine: il cielo del logo; schede bianche sopra
+            surface: cielo,
+            onSurface: const Color(0xFF0B1B33),
+            onSurfaceVariant: const Color(0xFF1C3554), // testi secondari leggibili anche sull'azzurro
+            outline: const Color(0xFF2F5C86),
+            outlineVariant: const Color(0xFFB9D9F2),
             surfaceContainerLowest: Colors.white,
-            surfaceContainerLow: const Color(0xFFFFFDF7),
-            surfaceContainer: const Color(0xFFF8F0D8),
-            surfaceContainerHigh: const Color(0xFFF3EACD),
-            surfaceContainerHighest: const Color(0xFFEDE3C3),
+            surfaceContainerLow: const Color(0xFFF7FBFF),
+            surfaceContainer: const Color(0xFFEFF6FD),
+            surfaceContainerHigh: const Color(0xFFE6F1FB),
+            surfaceContainerHighest: const Color(0xFFDCEBF8),
           )
         : base.copyWith(
             primary: const Color(0xFFAFC6F2),
@@ -55,9 +61,20 @@ class PalioApp extends StatelessWidget {
         foregroundColor: chiaro ? Colors.white : schema.onSurface,
         scrolledUnderElevation: 2,
       ),
+      // menu in basso blu notte: voce scelta in oro, le altre in bianco
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: chiaro ? Colors.white : schema.surfaceContainer,
+        backgroundColor: chiaro ? bluNotte : schema.surfaceContainer,
         indicatorColor: chiaro ? oro : schema.secondaryContainer,
+        iconTheme: chiaro
+            ? WidgetStateProperty.resolveWith((s) =>
+                IconThemeData(color: s.contains(WidgetState.selected) ? bluNotte : Colors.white.withValues(alpha: 0.85)))
+            : null,
+        labelTextStyle: chiaro
+            ? WidgetStateProperty.resolveWith((s) => TextStyle(
+                fontSize: 12,
+                color: s.contains(WidgetState.selected) ? oro : Colors.white.withValues(alpha: 0.85),
+                fontWeight: s.contains(WidgetState.selected) ? FontWeight.w700 : FontWeight.w500))
+            : null,
       ),
       cardTheme: CardThemeData(
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),

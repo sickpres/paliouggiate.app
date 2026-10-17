@@ -18,7 +18,7 @@ API pubbliche del portale.
 | Giochi | `GET /api/giochi`, `GET /api/calendario` | i giochi del programma; classifica provvisoria appena c'è un risultato (con le partite che mancano), definitiva quando il gioco è pubblicato |
 | Sponsor | `GET /api/sponsor`, `/api/sponsor/:id/logo` | tocco sul logo = sito dello sponsor |
 
-Colori dell'interfaccia ripresi dal logo (blu notte, oro, crema, rosso: `lib/main.dart`).
+Colori dell'interfaccia ripresi dal logo (`lib/main.dart`): barra in alto e menu blu notte, voce attiva in oro, sfondo azzurro come il cielo del logo, schede bianche.
 Il logo (`assets/logo.png`) e l'icona (`assets/icona.png`, 1024 × 1024) sono
 ricavati dal logo «Palio dei Rioni».
 
