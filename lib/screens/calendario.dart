@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../api.dart';
 import '../models.dart';
 import '../widgets/comuni.dart';
+import 'pallavolo.dart';
 
 class _Programma {
   final Edizione edizione;
@@ -34,7 +35,7 @@ class _Elenco extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context);
-    final oggi = DateTime.now();
+    final oggi = oggiApp();
     final righe = <Widget>[
       Card(
         color: t.colorScheme.primaryContainer,
@@ -45,6 +46,15 @@ class _Elenco extends StatelessWidget {
           title: Text(p.edizione.nome.isEmpty ? 'Palio dei rioni' : p.edizione.nome,
               style: TextStyle(fontWeight: FontWeight.w700, color: t.colorScheme.onPrimaryContainer)),
           subtitle: Text(intervallo(p.edizione.inizio, p.edizione.fine), style: TextStyle(color: t.colorScheme.onPrimaryContainer)),
+        ),
+      ),
+      Card(
+        child: ListTile(
+          leading: const Icon(Icons.sports_volleyball),
+          title: const Text('Partite di pallavolo'),
+          subtitle: const Text('Tutte le partite, anche solo quelle del tuo rione'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => apriPallavolo(context),
         ),
       ),
     ];
@@ -62,23 +72,31 @@ class _Elenco extends StatelessWidget {
         righe.add(Sezione(giornoLungo(v.data),
             coda: stessoGiorno(v.data, oggi) ? Chip(label: const Text('Oggi'), visualDensity: VisualDensity.compact) : null));
       }
-      righe.add(_VoceTile(v));
+      righe.add(VoceTile(v));
     }
     righe.add(const SizedBox(height: 24));
     return ListView(physics: const AlwaysScrollableScrollPhysics(), children: righe);
   }
 }
 
-class _VoceTile extends StatelessWidget {
+void apriPallavolo(BuildContext context) =>
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PaginaPallavolo()));
+
+/// Una voce del programma; la pallavolo apre il calendario delle partite.
+class VoceTile extends StatelessWidget {
   final Voce v;
-  const _VoceTile(this.v);
+  const VoceTile(this.v, {super.key});
 
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context);
     final dettagli = [v.chi, v.luogo].where((s) => s.isNotEmpty).join(' · ');
+    final partite = v.tipo == 'pallavolo';
     return Card(
-      child: Padding(
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: partite ? () => apriPallavolo(context) : null,
+        child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -112,8 +130,10 @@ class _VoceTile extends StatelessWidget {
                 ],
               ),
             ),
+            if (partite) Icon(Icons.chevron_right, color: t.colorScheme.onSurfaceVariant),
           ],
         ),
+      ),
       ),
     );
   }

@@ -17,6 +17,11 @@ String intervallo(DateTime? a, DateTime? b) {
   return '${dataBreve(a)} – ${dataBreve(b)}';
 }
 
+// solo per le schermate di prova nel simulatore: --dart-define=PROVA_OGGI=2027-07-03
+const _provaOggi = String.fromEnvironment('PROVA_OGGI');
+
+DateTime oggiApp() => DateTime.tryParse(_provaOggi) ?? DateTime.now();
+
 bool stessoGiorno(DateTime a, DateTime b) => a.year == b.year && a.month == b.month && a.day == b.day;
 
 Color coloreHex(String hex, [Color altrimenti = Colors.grey]) {

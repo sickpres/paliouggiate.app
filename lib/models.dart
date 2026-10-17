@@ -198,3 +198,58 @@ class Sponsor {
 
   factory Sponsor.fromJson(Map<String, dynamic> j) => Sponsor(_i(j['id']), _s(j['nome']), _s(j['sito']));
 }
+
+/// Una partita di un gioco a squadre (GET /api/partite/pallavolo).
+class Partita {
+  final int id;
+  final DateTime? data;
+  final String ora;
+  final int? campo;
+  final int rioneA;
+  final int rioneB;
+  final int? arbitro;
+  final String risultato; // vuoto finche' il gioco non e' pubblicato
+  Partita({
+    required this.id,
+    this.data,
+    required this.ora,
+    this.campo,
+    required this.rioneA,
+    required this.rioneB,
+    this.arbitro,
+    required this.risultato,
+  });
+
+  bool gioca(int rione) => rioneA == rione || rioneB == rione;
+
+  factory Partita.fromJson(Map<String, dynamic> j) => Partita(
+        id: _i(j['id']),
+        data: DateTime.tryParse(_s(j['data'])),
+        ora: _s(j['ora']),
+        campo: j['campo'] == null ? null : _i(j['campo']),
+        rioneA: _i(j['rione_a']),
+        rioneB: _i(j['rione_b']),
+        arbitro: j['arbitro_id'] == null ? null : _i(j['arbitro_id']),
+        risultato: _s(j['risultato']),
+      );
+}
+
+class CalendarioPartite {
+  final String nome;
+  final String luogo;
+  final String chi;
+  final bool arbitri;
+  final List<Partita> partite;
+  CalendarioPartite({required this.nome, required this.luogo, required this.chi, required this.arbitri, required this.partite});
+
+  factory CalendarioPartite.fromJson(Map<String, dynamic> j) {
+    final g = j['gioco'] is Map ? Map<String, dynamic>.from(j['gioco'] as Map) : const <String, dynamic>{};
+    return CalendarioPartite(
+      nome: _s(g['nome']),
+      luogo: _s(g['luogo']),
+      chi: _s(g['chi']),
+      arbitri: j['arbitri'] == true,
+      partite: [for (final p in (j['partite'] as List? ?? const [])) Partita.fromJson(Map<String, dynamic>.from(p as Map))],
+    );
+  }
+}

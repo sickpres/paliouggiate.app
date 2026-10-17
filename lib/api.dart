@@ -61,6 +61,7 @@ class Api {
   Future<ClassificaDettaglio> classifica() async => ClassificaDettaglio.fromJson(_mappa(await _get('classifica/dettaglio')));
   Future<List<AnnoArchivio>> archivio() async => _lista(await _get('archivio')).map(AnnoArchivio.fromJson).toList();
   Future<List<Gioco>> giochi() async => _lista(await _get('giochi')).map(Gioco.fromJson).toList();
+  Future<CalendarioPartite> partite(String tipo) async => CalendarioPartite.fromJson(_mappa(await _get('partite/$tipo')));
   Future<List<Sponsor>> sponsor() async => _lista(await _get('sponsor')).map(Sponsor.fromJson).toList();
 
   String logoRione(Rione r) => '${url('rioni/${r.id}/logo')}?v=${r.logoVersione}';
