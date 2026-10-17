@@ -4,10 +4,13 @@ import 'package:flutter/services.dart';
 import '../api.dart';
 import '../models.dart';
 import '../widgets/comuni.dart';
+import '../widgets/mappa.dart';
 import 'calendario.dart';
 
 // solo per le schermate di prova nel simulatore: --dart-define=PROVA_TELECRONACA="testo"
 const _provaTelecronaca = String.fromEnvironment('PROVA_TELECRONACA');
+// --dart-define=PROVA_FONDO=true porta la Home in fondo (per fotografare la mappa)
+const _provaFondo = bool.fromEnvironment('PROVA_FONDO');
 
 class _Dati {
   final Edizione edizione;
@@ -74,7 +77,14 @@ class _Contenuto extends StatelessWidget {
     final prossimo = dopo.isEmpty ? <Voce>[] : dopo.where((v) => stessoGiorno(v.data, dopo.first.data)).toList();
     final stato = _stato(oggi);
 
+    final scorri = _provaFondo ? ScrollController() : null;
+    if (scorri != null) {
+      Future.delayed(const Duration(seconds: 3), () {
+        if (scorri.hasClients) scorri.jumpTo(scorri.position.maxScrollExtent);
+      });
+    }
     return ListView(
+      controller: scorri,
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.only(bottom: 24),
       children: [
@@ -110,6 +120,8 @@ class _Contenuto extends StatelessWidget {
           Sezione('Prossimo appuntamento · ${giornoLungo(prossimo.first.data)}'),
           for (final v in prossimo) VoceTile(v),
         ],
+        const Sezione('I rioni'),
+        const MappaRioni(),
       ],
     );
   }

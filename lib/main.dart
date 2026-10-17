@@ -68,15 +68,16 @@ class PalioApp extends StatelessWidget {
       ),
       // menu in basso blu notte: voce scelta in oro, le altre in bianco
       navigationBarTheme: NavigationBarThemeData(
+        height: 62, // piu' basso dei 80 standard
         backgroundColor: chiaro ? bluNotte : schema.surfaceContainer,
         indicatorColor: chiaro ? oro : schema.secondaryContainer,
         iconTheme: chiaro
             ? WidgetStateProperty.resolveWith((s) =>
-                IconThemeData(color: s.contains(WidgetState.selected) ? bluNotte : Colors.white.withValues(alpha: 0.85)))
+                IconThemeData(size: 22, color: s.contains(WidgetState.selected) ? bluNotte : Colors.white.withValues(alpha: 0.85)))
             : null,
         labelTextStyle: chiaro
             ? WidgetStateProperty.resolveWith((s) => TextStyle(
-                fontSize: 12,
+                fontSize: 11,
                 color: s.contains(WidgetState.selected) ? oro : Colors.white.withValues(alpha: 0.85),
                 fontWeight: s.contains(WidgetState.selected) ? FontWeight.w700 : FontWeight.w500))
             : null,

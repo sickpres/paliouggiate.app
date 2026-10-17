@@ -21,14 +21,16 @@ class Rione {
   final int id;
   final String nome;
   final String colore;
+  final String descrizione;
   final bool haLogo;
   final String logoVersione;
-  Rione({required this.id, required this.nome, required this.colore, required this.haLogo, required this.logoVersione});
+  Rione({required this.id, required this.nome, required this.colore, this.descrizione = '', required this.haLogo, required this.logoVersione});
 
   factory Rione.fromJson(Map<String, dynamic> j) => Rione(
         id: _i(j['id']),
         nome: _s(j['nome']),
         colore: _s(j['colore']),
+        descrizione: _s(j['descrizione']),
         haLogo: j['ha_logo'] == true,
         logoVersione: _s(j['logo_versione']),
       );
