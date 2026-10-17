@@ -9,7 +9,7 @@ import 'calendario.dart';
 // --dart-define=PROVA_TAB_GIOCO=n apre la scheda n del gioco (schermate di prova)
 const _provaTab = int.fromEnvironment('PROVA_TAB_GIOCO');
 
-/// Pagina di un gioco con il suo menu: data e orario, classifica, regolamento, criteri di valutazione, punteggio.
+/// Pagina di un gioco con il suo menu in basso: info (data, orario, luogo), classifica, regolamento, criteri, punteggio.
 class PaginaGioco extends StatefulWidget {
   final int id;
   final String nome;
@@ -41,63 +41,62 @@ class _PaginaGiocoState extends State<PaginaGioco> {
     }
   }
 
+  // menu in basso, come quello principale
+  int _scheda = _provaTab.clamp(0, 4);
   static const _voci = [
-    Tab(icon: Icon(Icons.schedule), text: 'Data e orario'),
-    Tab(icon: Icon(Icons.leaderboard), text: 'Classifica'),
-    Tab(icon: Icon(Icons.menu_book), text: 'Regolamento'),
-    Tab(icon: Icon(Icons.rule), text: 'Criteri di valutazione'),
-    Tab(icon: Icon(Icons.emoji_events), text: 'Punteggio'),
+    NavigationDestination(icon: Icon(Icons.info_outline), selectedIcon: Icon(Icons.info), label: 'Info'),
+    NavigationDestination(icon: Icon(Icons.leaderboard_outlined), selectedIcon: Icon(Icons.leaderboard), label: 'Classifica'),
+    NavigationDestination(icon: Icon(Icons.menu_book_outlined), selectedIcon: Icon(Icons.menu_book), label: 'Regolamento'),
+    NavigationDestination(icon: Icon(Icons.rule), selectedIcon: Icon(Icons.rule), label: 'Criteri'),
+    NavigationDestination(icon: Icon(Icons.emoji_events_outlined), selectedIcon: Icon(Icons.emoji_events), label: 'Punteggio'),
   ];
 
   @override
   Widget build(BuildContext context) {
-    final t = Theme.of(context);
-    return DefaultTabController(
-      length: _voci.length,
-      initialIndex: _provaTab.clamp(0, _voci.length - 1),
-      child: Scaffold(
-        appBar: AppBar(
-          title: Row(children: [
-            Icon(iconaGioco(_gioco?.tipo ?? widget.tipo), size: 22),
-            const SizedBox(width: 10),
-            Expanded(child: Text(_gioco?.nome ?? widget.nome, overflow: TextOverflow.ellipsis)),
-          ]),
-          bottom: TabBar(
-            isScrollable: true,
-            tabAlignment: TabAlignment.start,
-            tabs: _voci,
-            labelColor: t.colorScheme.secondaryContainer,
-            unselectedLabelColor: Colors.white70,
-            indicatorColor: t.colorScheme.secondaryContainer,
-            dividerColor: Colors.transparent,
-          ),
-        ),
-        body: FutureBuilder<(SchedaGioco, List<Rione>)>(
-          future: _futuro,
-          builder: (context, s) {
-            if (s.hasError) {
-              return Messaggio(
-                icona: Icons.cloud_off,
-                titolo: 'Impossibile caricare il gioco',
-                testo: s.error is ApiException ? s.error.toString() : null,
-                azione: FilledButton.tonalIcon(onPressed: _ricarica, icon: const Icon(Icons.refresh), label: const Text('Riprova')),
-              );
-            }
-            if (!s.hasData) return const Center(child: CircularProgressIndicator());
-            final (g, rioni) = s.data!;
-            Widget scheda(List<Widget> figli) => RefreshIndicator(
-                  onRefresh: _ricarica,
-                  child: ListView(physics: const AlwaysScrollableScrollPhysics(), padding: const EdgeInsets.only(bottom: 24), children: figli),
-                );
-            return TabBarView(children: [
-              scheda(_quando(context, g)),
-              scheda(_classifica(context, g, rioni)),
-              scheda(_testo(context, g.regolamento, Icons.menu_book, 'Regolamento non ancora pubblicato')),
-              scheda(_testo(context, g.criteri, Icons.rule, 'Criteri di valutazione non ancora pubblicati')),
-              scheda(_punteggio(context, g)),
-            ]);
-          },
-        ),
+    return Scaffold(
+      appBar: AppBar(
+        title: Row(children: [
+          Icon(iconaGioco(_gioco?.tipo ?? widget.tipo), size: 22),
+          const SizedBox(width: 10),
+          Expanded(child: Text(_gioco?.nome ?? widget.nome, overflow: TextOverflow.ellipsis)),
+        ]),
+      ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _scheda,
+        onDestinationSelected: (i) => setState(() => _scheda = i),
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+        destinations: _voci,
+      ),
+      body: FutureBuilder<(SchedaGioco, List<Rione>)>(
+        future: _futuro,
+        builder: (context, s) {
+          if (s.hasError) {
+            return Messaggio(
+              icona: Icons.cloud_off,
+              titolo: 'Impossibile caricare il gioco',
+              testo: s.error is ApiException ? s.error.toString() : null,
+              azione: FilledButton.tonalIcon(onPressed: _ricarica, icon: const Icon(Icons.refresh), label: const Text('Riprova')),
+            );
+          }
+          if (!s.hasData) return const Center(child: CircularProgressIndicator());
+          final (g, rioni) = s.data!;
+          final figli = switch (_scheda) {
+            0 => _quando(context, g),
+            1 => _classifica(context, g, rioni),
+            2 => _testo(context, g.regolamento, Icons.menu_book, 'Regolamento non ancora pubblicato'),
+            3 => _testo(context, g.criteri, Icons.rule, 'Criteri di valutazione non ancora pubblicati'),
+            _ => _punteggio(context, g),
+          };
+          return RefreshIndicator(
+            onRefresh: _ricarica,
+            child: ListView(
+              key: PageStorageKey(_scheda), // ogni voce ricorda dove era arrivata
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.only(bottom: 24),
+              children: figli,
+            ),
+          );
+        },
       ),
     );
   }
