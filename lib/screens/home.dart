@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../promemoria.dart';
 import 'calendario.dart';
 import 'classifica.dart';
 import 'giochi.dart';
@@ -23,9 +24,19 @@ class _HomeState extends State<Home> {
 
   static const _pagine = [PaginaOggi(), PaginaCalendario(), PaginaClassifica(), PaginaGiochi(), PaginaSponsor()];
 
+  // a ogni ritorno nell'app si riscarica il piano dei promemoria
+  late final AppLifecycleListener _ciclo;
+
+  @override
+  void dispose() {
+    _ciclo.dispose();
+    super.dispose();
+  }
+
   @override
   void initState() {
     super.initState();
+    _ciclo = AppLifecycleListener(onResume: Promemoria.aggiorna);
     if (_provaPallavolo) {
       WidgetsBinding.instance.addPostFrameCallback(
           (_) => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PaginaPallavolo())));

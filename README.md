@@ -11,12 +11,21 @@ API pubbliche del portale.
 
 | scheda | API del portale | note |
 | --- | --- | --- |
-| Home | `GET /api/config`, `GET /api/calendario`, `GET /api/telecronaca` | «Il Palio in diretta», testo scritto dall'IA del portale, appuntamenti di oggi (o il prossimo giorno di gare), conto alla rovescia |
+| Home | `GET /api/config`, `GET /api/calendario`, `GET /api/telecronaca` | «Il Palio in diretta» (testo dell'IA del portale), appuntamenti di oggi (o il prossimo giorno di gare), conto alla rovescia |
 | Calendario | `GET /api/config`, `GET /api/calendario` | giorni e orari in ora italiana, così come li manda il portale; da qui si apre la pallavolo |
 | Partite di pallavolo | `GET /api/partite/pallavolo`, `GET /api/rioni` | filtro per rione, ricordato sul telefono (`SharedPreferences`, chiave `rione_pallavolo`) |
 | Classifica | `GET /api/classifica/dettaglio`, `GET /api/archivio`, `GET /api/rioni` | edizione in corso (punti per gioco) e albo d'oro, con gli stemmi dei rioni |
 | Giochi | `GET /api/giochi`, `GET /api/calendario` | i giochi del programma; classifica provvisoria appena c'è un risultato (con le partite che mancano), definitiva quando il gioco è pubblicato |
 | Sponsor | `GET /api/sponsor`, `/api/sponsor/:id/logo` | tocco sul logo = sito dello sponsor |
+
+## Promemoria (notifiche)
+
+Notifiche **locali**: l'app è installata con un Apple ID gratuito, che non permette le push dal server. A ogni
+apertura (e quando cambia il rione scelto nella pallavolo) l'app scarica `GET /api/notifiche` e programma sul
+telefono le notifiche del piano, al massimo una al giorno (`lib/promemoria.dart`, `flutter_local_notifications`).
+Il piano lo decide il pannello del portale, alla voce «Notifiche app»: promemoria automatico nei giorni di gara
+all'ora scelta, oppure un messaggio scritto a mano per un giorno, che prende il posto del promemoria automatico.
+Un messaggio nuovo arriva solo a chi apre l'app dopo che è stato programmato.
 
 Colori dell'interfaccia ripresi dal logo (`lib/main.dart`): barra in alto e menu blu notte, voce attiva in oro, sfondo azzurro come il cielo del logo, schede bianche.
 Il logo (`assets/logo.png`) e l'icona (`assets/icona.png`, 1024 × 1024) sono

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+import 'promemoria.dart';
 import 'screens/home.dart';
 
 // Colori del logo «Palio dei Rioni»
@@ -10,7 +11,10 @@ const crema = Color(0xFFFEF8E2);
 const cielo = Color(0xFF63B9F2);
 const rosso = Color(0xFFC62B2B);
 
-void main() => runApp(const PalioApp());
+void main() {
+  runApp(const PalioApp());
+  Promemoria.aggiorna();
+}
 
 class PalioApp extends StatelessWidget {
   const PalioApp({super.key});

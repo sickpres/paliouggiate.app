@@ -3,10 +3,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../api.dart';
 import '../models.dart';
+import '../promemoria.dart';
 import '../widgets/comuni.dart';
 
-// rione scelto nel filtro: resta selezionato anche alle aperture successive
-const _kRione = 'rione_pallavolo';
+// il rione scelto nel filtro resta selezionato anche alle aperture successive (chiaveRione, in promemoria.dart)
 
 // solo per le schermate di prova nel simulatore: --dart-define=PROVA_RIONE=id
 const _provaRione = int.fromEnvironment('PROVA_RIONE');
@@ -46,7 +46,7 @@ class _PaginaPallavoloState extends State<PaginaPallavolo> {
     if (_provaRione > 0) await _scegli(_provaRione);
     try {
       final p = await SharedPreferences.getInstance();
-      _rione = p.getInt(_kRione);
+      _rione = p.getInt(chiaveRione);
     } catch (_) {
       _rione = null; // senza preferenze si parte da «Tutti»
     }
@@ -58,13 +58,14 @@ class _PaginaPallavoloState extends State<PaginaPallavolo> {
     try {
       final p = await SharedPreferences.getInstance();
       if (rione == null) {
-        await p.remove(_kRione);
+        await p.remove(chiaveRione);
       } else {
-        await p.setInt(_kRione, rione);
+        await p.setInt(chiaveRione, rione);
       }
     } catch (_) {
       // la scelta vale comunque finche' la pagina resta aperta
     }
+    Promemoria.aggiorna(); // i promemoria citano la partita del rione scelto
   }
 
   @override

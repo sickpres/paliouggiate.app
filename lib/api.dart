@@ -68,6 +68,12 @@ class Api {
     return t.testo.isEmpty ? null : t;
   }
 
+  /// Piano dei promemoria da programmare sul telefono (vuoto se il portale non ne prevede).
+  Future<List<Notifica>> notifiche() async {
+    final d = _mappa(await _get('notifiche'));
+    return [for (final x in _lista(d['piano'])) Notifica.fromJson(x)].whereType<Notifica>().toList();
+  }
+
   Future<List<Sponsor>> sponsor() async => _lista(await _get('sponsor')).map(Sponsor.fromJson).toList();
 
   String logoRione(Rione r) => '${url('rioni/${r.id}/logo')}?v=${r.logoVersione}';

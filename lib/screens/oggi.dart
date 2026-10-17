@@ -137,9 +137,10 @@ class _SchedaTelecronaca extends StatelessWidget {
           ]),
           const SizedBox(height: 8),
           Text(tc.testo, style: t.textTheme.bodyLarge?.copyWith(color: t.colorScheme.onPrimary, height: 1.4)),
-          const SizedBox(height: 8),
-          Text([if (q.isNotEmpty) q, "testo scritto dall'IA"].join(' · '),
-              style: t.textTheme.bodySmall?.copyWith(color: t.colorScheme.onPrimary.withValues(alpha: 0.7))),
+          if (q.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(q, style: t.textTheme.bodySmall?.copyWith(color: t.colorScheme.onPrimary.withValues(alpha: 0.7))),
+          ],
         ]),
       ),
     );
