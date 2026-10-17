@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -14,6 +15,8 @@ const _canale = MethodChannel('palio/mappa');
 String? _chiaveImpostata; // Google Maps accetta la chiave una volta sola per avvio dell'app
 // solo per le prove nel simulatore: --dart-define=PROVA_SENZA_STILE=true apre la mappa senza lo stile cloud
 const _provaSenzaStile = bool.fromEnvironment('PROVA_SENZA_STILE');
+// --dart-define=PROVA_ZOOM=11.5 porta la mappa a quello zoom dopo l'inquadratura
+const _provaZoom = String.fromEnvironment('PROVA_ZOOM');
 
 /// Mappa a tutta pagina (Google Maps, stile dal portale) con i confini dei rioni e i loro stemmi.
 class PaginaMappa extends StatefulWidget {
@@ -28,6 +31,7 @@ class _PaginaMappaState extends State<PaginaMappa> {
   final _stemmi = <int, BitmapDescriptor>{};
   GoogleMapController? _mappa;
   bool _inquadrata = false;
+  Set<int>? _visibili; // stemmi che non si sovrappongono allo zoom attuale
   String? _scelto;
 
   Future<ConfigMappa> _carica() async {
@@ -73,6 +77,37 @@ class _PaginaMappaState extends State<PaginaMappa> {
     }
     if (area.abs() < 1e-12) return _ll(a.first);
     return LatLng(y / (3 * area), x / (3 * area));
+  }
+
+  static double _area(List<(double, double)> a) {
+    double s = 0;
+    for (var i = 0; i < a.length; i++) {
+      final p = a[i], q = a[(i + 1) % a.length];
+      s += p.$2 * q.$1 - q.$2 * p.$1;
+    }
+    return s.abs() / 2;
+  }
+
+  // Stemmi da mostrare a uno zoom: si proiettano sullo schermo (Web Mercator, tile da 256 punti) e, se due si
+  // toccano, resta quello del rione piu' grande. Lo stemma e' largo 40 punti; 4 di margine.
+  static Set<int> _stemmiVisibili(ConfigMappa c, double zoom) {
+    final scala = 256 * math.pow(2, zoom).toDouble();
+    Offset schermo(LatLng p) {
+      final s = math.sin(p.latitude * math.pi / 180).clamp(-0.9999, 0.9999);
+      return Offset((p.longitude + 180) / 360 * scala, (0.5 - math.log((1 + s) / (1 - s)) / (4 * math.pi)) * scala);
+    }
+    final rioni = c.rioni.where((r) => r.anelli.isNotEmpty).toList()
+      ..sort((a, b) => _area(b.anelli.reduce((x, y) => x.length >= y.length ? x : y)).compareTo(_area(a.anelli.reduce((x, y) => x.length >= y.length ? x : y))));
+    final tenuti = <Offset>[];
+    final out = <int>{};
+    for (final r in rioni) {
+      final p = schermo(_centro(r.anelli.reduce((a, b) => a.length >= b.length ? a : b)));
+      if (tenuti.every((q) => (q - p).distance >= 44)) {
+        tenuti.add(p);
+        out.add(r.rione.id);
+      }
+    }
+    return out;
   }
 
   static LatLngBounds? _limiti(ConfigMappa c) {
@@ -121,6 +156,7 @@ class _PaginaMappaState extends State<PaginaMappa> {
     final limiti = _limiti(c);
     final poligoni = <Polygon>{};
     final segni = <Marker>{};
+    final visibili = _visibili ??= _stemmiVisibili(c, 13.5);
     for (final r in c.rioni) {
       final col = coloreHex(r.rione.colore);
       final scelto = _scelto == r.rione.nome;
@@ -142,6 +178,7 @@ class _PaginaMappaState extends State<PaginaMappa> {
           position: _centro(grande),
           icon: _stemmi[r.rione.id] ?? BitmapDescriptor.defaultMarkerWithHue(HSVColor.fromColor(col).hue),
           anchor: const Offset(0.5, 0.5),
+          visible: visibili.contains(r.rione.id),
           infoWindow: InfoWindow(title: r.rione.nome),
           onTap: () => setState(() => _scelto = r.rione.nome),
         ));
@@ -161,11 +198,20 @@ class _PaginaMappaState extends State<PaginaMappa> {
         mapToolbarEnabled: false,
         zoomControlsEnabled: false,
         onMapCreated: (m) => _mappa = m,
+        // allontanandosi gli stemmi che si toccano spariscono, e tornano quando c'e' spazio
+        onCameraMove: (pos) {
+          final v = _stemmiVisibili(c, pos.zoom);
+          if (!setEquals(v, _visibili)) setState(() => _visibili = v);
+        },
         // tutti i rioni nello schermo: la prima volta che la mappa e' ferma (prima non conosce ancora le sue misure)
         onCameraIdle: () {
           if (_inquadrata || limiti == null || _mappa == null) return;
           _inquadrata = true;
-          _mappa!.animateCamera(CameraUpdate.newLatLngBounds(limiti, 24));
+          _mappa!.animateCamera(_provaZoom.isEmpty
+              ? CameraUpdate.newLatLngBounds(limiti, 24)
+              : CameraUpdate.newLatLngZoom(
+                  LatLng((limiti.southwest.latitude + limiti.northeast.latitude) / 2, (limiti.southwest.longitude + limiti.northeast.longitude) / 2),
+                  double.parse(_provaZoom)));
         },
         onTap: (_) => setState(() => _scelto = null),
       ),
