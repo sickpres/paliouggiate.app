@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../api.dart';
 import '../models.dart';
@@ -30,9 +31,15 @@ class PaginaOggi extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Palio Uggiate con Ronago')),
-      body: DatiRemoti<_Dati>(carica: _carica, costruisci: (context, d) => _Contenuto(d)),
+    // senza barra in alto: il logo apre la pagina; ora e batteria scure sull'azzurro
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: Theme.of(context).brightness == Brightness.dark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
+      child: Scaffold(
+        body: SafeArea(
+          bottom: false,
+          child: DatiRemoti<_Dati>(carica: _carica, costruisci: (context, d) => _Contenuto(d)),
+        ),
+      ),
     );
   }
 }
@@ -85,7 +92,7 @@ class _Contenuto extends StatelessWidget {
               child: Chip(
                 avatar: const Icon(Icons.flag, size: 18),
                 label: Text(stato),
-                backgroundColor: t.colorScheme.primaryContainer,
+                backgroundColor: t.colorScheme.surfaceContainerLowest,
               ),
             ),
           ),
