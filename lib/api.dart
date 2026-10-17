@@ -81,5 +81,6 @@ class Api {
   Future<List<Sponsor>> sponsor() async => _lista(await _get('sponsor')).map(Sponsor.fromJson).toList();
 
   String logoRione(Rione r) => '${url('rioni/${r.id}/logo')}?v=${r.logoVersione}';
+  String simboloRione(Rione r) => '${url('rioni/${r.id}/simbolo')}?v=${r.simboloVersione}';
   String logoSponsor(Sponsor s) => url('sponsor/${s.id}/logo');
 }

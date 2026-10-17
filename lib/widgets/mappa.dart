@@ -201,6 +201,23 @@ class _Scheda extends StatelessWidget {
   final _Dati d;
   const _Scheda(this.nome, this.d);
 
+  Widget _foto(Rione r) => Padding(
+        padding: const EdgeInsets.only(top: 12),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: AspectRatio(
+            aspectRatio: 16 / 9,
+            child: Image.network(
+              Api.instance.simboloRione(r),
+              fit: BoxFit.cover,
+              loadingBuilder: (context, figlio, avanzamento) =>
+                  avanzamento == null ? figlio : ColoredBox(color: coloreHex(r.colore).withValues(alpha: 0.15)),
+              errorBuilder: (context, e, s) => const SizedBox.shrink(),
+            ),
+          ),
+        ),
+      );
+
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context);
@@ -233,12 +250,15 @@ class _Scheda extends StatelessWidget {
                 text: r != null && r.capoRione.isNotEmpty ? r.capoRione : 'da definire',
                 style: const TextStyle(fontWeight: FontWeight.w700)),
           ])),
-          for (final (k, v) in voci) ...[
+          for (var n = 0; n < voci.length; n++) ...[
             const SizedBox(height: 10),
-            Text(k.toUpperCase(),
+            Text(voci[n].$1.toUpperCase(),
                 style: t.textTheme.labelSmall?.copyWith(color: t.colorScheme.onSurfaceVariant, letterSpacing: 0.8, fontWeight: FontWeight.w600)),
-            Text(v, style: t.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600)),
+            Text(voci[n].$2, style: t.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600)),
+            // la foto «simbolo» del rione sotto il punteggio attuale
+            if (n == 0 && i >= 0 && r != null && r.haSimbolo) _foto(r),
           ],
+          if (i < 0 && r != null && r.haSimbolo) _foto(r),
         ]),
       ),
     );

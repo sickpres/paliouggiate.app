@@ -25,7 +25,9 @@ class Rione {
   final String capoRione; // nome e cognome (piu' d'uno separati da virgola), vuoto se non c'e'
   final bool haLogo;
   final String logoVersione;
-  Rione({required this.id, required this.nome, required this.colore, this.descrizione = '', this.capoRione = '', required this.haLogo, required this.logoVersione});
+  final bool haSimbolo; // foto «simbolo» 16:9 caricata dal pannello
+  final String simboloVersione;
+  Rione({required this.id, required this.nome, required this.colore, this.descrizione = '', this.capoRione = '', required this.haLogo, required this.logoVersione, this.haSimbolo = false, this.simboloVersione = ''});
 
   factory Rione.fromJson(Map<String, dynamic> j) => Rione(
         id: _i(j['id']),
@@ -35,6 +37,8 @@ class Rione {
         capoRione: _s(j['capo_rione']),
         haLogo: j['ha_logo'] == true,
         logoVersione: _s(j['logo_versione']),
+        haSimbolo: j['ha_simbolo'] == true,
+        simboloVersione: _s(j['simbolo_versione']),
       );
 }
 
