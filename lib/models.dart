@@ -399,3 +399,34 @@ class SchedaGioco {
     );
   }
 }
+
+double _d(dynamic v) => v is num ? v.toDouble() : double.tryParse(_s(v)) ?? 0;
+
+/// Un rione sulla mappa: i suoi confini (uno o piu' anelli di punti lat/lng).
+class RioneMappa {
+  final Rione rione;
+  final List<List<(double, double)>> anelli;
+  RioneMappa(this.rione, this.anelli);
+}
+
+/// Configurazione della mappa dal portale (GET /api/mappa): chiave e stile di Google Maps, confini dei rioni.
+class ConfigMappa {
+  final String chiaveIos;
+  final String stile;
+  final bool approssimati;
+  final List<RioneMappa> rioni;
+  ConfigMappa({required this.chiaveIos, required this.stile, required this.approssimati, required this.rioni});
+
+  factory ConfigMappa.fromJson(Map<String, dynamic> j) => ConfigMappa(
+        chiaveIos: _s(j['chiave_ios']),
+        stile: _s(j['stile']),
+        approssimati: j['confini_approssimati'] == true,
+        rioni: [
+          for (final r in (j['rioni'] as List? ?? const []))
+            RioneMappa(Rione.fromJson(Map<String, dynamic>.from(r as Map)), [
+              for (final a in (r['anelli'] as List? ?? const []))
+                [for (final p in (a as List)) (_d((p as List)[0]), _d(p[1]))]
+            ])
+        ],
+      );
+}

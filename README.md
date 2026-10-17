@@ -17,6 +17,7 @@ API pubbliche del portale.
 | Classifica | `GET /api/classifica/dettaglio`, `GET /api/archivio`, `GET /api/rioni` | edizione in corso (punti per gioco) e albo d'oro, con gli stemmi dei rioni |
 | Giochi | `GET /api/giochi`, `GET /api/calendario` | i giochi del programma con la ricerca; ogni gioco apre la sua pagina |
 | Pagina del gioco | `GET /api/giochi/:id` | menu in basso: Info (data, orario, luogo), Classifica (provvisoria o definitiva), Regole, Criteri, Punteggio |
+| Mappa dei rioni | `GET /api/mappa` | Google Maps a tutta pagina (dal pulsante «Mappa» della Home) con i confini dei rioni colorati e gli stemmi; chiave iOS e stile (map ID) dal pannello, Amministrazione sistema |
 | Social | `GET /api/sponsor`, `/api/sponsor/:id/logo` | pagine Facebook e Instagram del Palio (`lib/screens/social.dart`), sotto i loghi degli sponsor se il portale ne pubblica |
 
 ## Promemoria (notifiche)
@@ -31,6 +32,13 @@ Un messaggio nuovo arriva solo a chi apre l'app dopo che è stato programmato.
 Colori dell'interfaccia ripresi dal logo (`lib/main.dart`): barra in alto e menu blu notte, voce attiva in oro, sfondo azzurro chiaro (il cielo del logo schiarito, `#D8EDFC`), schede bianche.
 Il logo (`assets/logo.png`) e l'icona (`assets/icona.png`, 1024 × 1024) sono
 ricavati dal logo «Palio dei Rioni».
+
+## Google Maps
+
+La chiave non è scritta nell'app: la manda il portale (`/api/mappa`) e `AppDelegate.swift` la passa a
+`GMSServices.provideAPIKey` prima della prima mappa (canale `palio/mappa`). Si usa
+`google_maps_flutter_ios_sdk10` perché l'SDK 10 si installa con Swift Package Manager; per questo l'app richiede
+iOS 16. Se in `ios/` ricompaiono `Podfile` o include di `Pods` nei `.xcconfig`, vanno tolti: CocoaPods non c'è.
 
 ## Build dell'.ipa (Mac remoto)
 

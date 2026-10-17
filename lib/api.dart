@@ -76,6 +76,8 @@ class Api {
 
   Future<SchedaGioco> gioco(int id) async => SchedaGioco.fromJson(_mappa(await _get('giochi/$id')));
 
+  Future<ConfigMappa> mappa() async => ConfigMappa.fromJson(_mappa(await _get('mappa')));
+
   Future<List<Sponsor>> sponsor() async => _lista(await _get('sponsor')).map(Sponsor.fromJson).toList();
 
   String logoRione(Rione r) => '${url('rioni/${r.id}/logo')}?v=${r.logoVersione}';
