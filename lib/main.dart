@@ -8,7 +8,8 @@ import 'screens/home.dart';
 const bluNotte = Color(0xFF062246);
 const oro = Color(0xFFFEAB06);
 const crema = Color(0xFFFEF8E2);
-const cielo = Color(0xFF63B9F2);
+// azzurro del cielo del logo (#63B9F2) schiarito a meta' con il bianco
+const cielo = Color(0xFFB1DCF8);
 const rosso = Color(0xFFC62B2B);
 
 void main() {
@@ -35,7 +36,7 @@ class PalioApp extends StatelessWidget {
             tertiary: rosso,
             tertiaryContainer: const Color(0xFFFADAD7),
             onTertiaryContainer: const Color(0xFF5C0F0F),
-            // sfondo delle pagine: il cielo del logo; schede bianche sopra
+            // sfondo delle pagine: il cielo del logo, piu' chiaro; schede bianche sopra
             surface: cielo,
             onSurface: const Color(0xFF0B1B33),
             onSurfaceVariant: const Color(0xFF1C3554), // testi secondari leggibili anche sull'azzurro

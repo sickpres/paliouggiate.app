@@ -27,7 +27,7 @@ Il piano lo decide il pannello del portale, alla voce «Notifiche app»: promemo
 all'ora scelta, oppure un messaggio scritto a mano per un giorno, che prende il posto del promemoria automatico.
 Un messaggio nuovo arriva solo a chi apre l'app dopo che è stato programmato.
 
-Colori dell'interfaccia ripresi dal logo (`lib/main.dart`): barra in alto e menu blu notte, voce attiva in oro, sfondo azzurro come il cielo del logo, schede bianche.
+Colori dell'interfaccia ripresi dal logo (`lib/main.dart`): barra in alto e menu blu notte, voce attiva in oro, sfondo azzurro chiaro (il cielo del logo schiarito, `#B1DCF8`), schede bianche.
 Il logo (`assets/logo.png`) e l'icona (`assets/icona.png`, 1024 × 1024) sono
 ricavati dal logo «Palio dei Rioni».
 
