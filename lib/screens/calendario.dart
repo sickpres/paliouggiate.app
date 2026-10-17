@@ -18,10 +18,10 @@ Future<_Programma> _carica() async {
   return _Programma(r[0] as Edizione, r[1] as List<Voce>);
 }
 
-// vista scelta (elenco o mese): resta la stessa alle aperture successive
+// vista scelta (mese, di partenza, o elenco): resta la stessa alle aperture successive
 const _kVista = 'vista_calendario';
-// solo per le schermate di prova nel simulatore: --dart-define=PROVA_MESE=true
-const _provaMese = bool.fromEnvironment('PROVA_MESE');
+// solo per le schermate di prova nel simulatore: --dart-define=PROVA_ELENCO=true
+const _provaElenco = bool.fromEnvironment('PROVA_ELENCO');
 
 class PaginaCalendario extends StatefulWidget {
   const PaginaCalendario({super.key});
@@ -31,14 +31,14 @@ class PaginaCalendario extends StatefulWidget {
 }
 
 class _PaginaCalendarioState extends State<PaginaCalendario> {
-  bool _mese = _provaMese;
+  bool _mese = !_provaElenco;
 
   @override
   void initState() {
     super.initState();
-    if (!_provaMese) {
+    if (!_provaElenco) {
       SharedPreferences.getInstance().then((p) {
-        if (mounted && p.getString(_kVista) == 'mese') setState(() => _mese = true);
+        if (mounted && p.getString(_kVista) == 'elenco') setState(() => _mese = false);
       }).catchError((_) {});
     }
   }
@@ -156,59 +156,72 @@ class _VistaMeseState extends State<_VistaMese> {
       );
     }
 
-    return ListView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.only(bottom: 24),
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 8, 4),
-          child: Row(children: [
+    // solo le settimane con giorni del Palio (o, senza date dell'edizione, con appuntamenti)
+    final ini = widget.p.edizione.inizio, fine = widget.p.edizione.fine;
+    bool utile(DateTime g) => ini != null && fine != null
+        ? !g.isBefore(_soloGiorno(ini)) && !g.isAfter(_soloGiorno(fine))
+        : _di(g).isNotEmpty;
+    var mostrate = [
+      for (var s = 0; s < settimane; s++)
+        if ([for (var d = 0; d < 7; d++) s * 7 + d - vuoti + 1].any((n) => n >= 1 && n <= giorniMese && utile(DateTime(_mese.year, _mese.month, n)))) s
+    ];
+    if (mostrate.isEmpty) mostrate = [for (var s = 0; s < settimane; s++) s];
+
+    final linea = BorderSide(color: t.colorScheme.outlineVariant.withValues(alpha: 0.6), width: 0.6);
+    // il calendario resta fermo: scorrono solo gli appuntamenti del giorno, sotto
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+        child: Text('${mesi[_mese.month - 1][0].toUpperCase()}${mesi[_mese.month - 1].substring(1)} ${_mese.year}',
+            style: t.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w800)),
+      ),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        child: Row(children: [
+          for (var i = 0; i < 7; i++)
             Expanded(
-              child: Text('${mesi[_mese.month - 1][0].toUpperCase()}${mesi[_mese.month - 1].substring(1)} ${_mese.year}',
-                  style: t.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w800)),
+              child: Center(
+                child: Text(iniziali[i],
+                    style: t.textTheme.labelMedium?.copyWith(
+                        fontWeight: FontWeight.w600, color: t.colorScheme.onSurfaceVariant.withValues(alpha: i >= 5 ? 0.7 : 1))),
+              ),
             ),
-          ]),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8),
+        ]),
+      ),
+      const SizedBox(height: 6),
+      for (final s in mostrate)
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          decoration: BoxDecoration(border: Border(top: linea)),
           child: Row(children: [
-            for (var i = 0; i < 7; i++)
+            for (var d = 0; d < 7; d++)
               Expanded(
-                child: Center(
-                  child: Text(iniziali[i],
-                      style: t.textTheme.labelMedium?.copyWith(
-                          fontWeight: FontWeight.w600, color: t.colorScheme.onSurfaceVariant.withValues(alpha: i >= 5 ? 0.7 : 1))),
-                ),
+                child: Builder(builder: (context) {
+                  final n = s * 7 + d - vuoti + 1;
+                  return n < 1 || n > giorniMese ? const SizedBox(height: 48) : cella(n);
+                }),
               ),
           ]),
         ),
-        const SizedBox(height: 6),
-        for (var s = 0; s < settimane; s++)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-            decoration: BoxDecoration(border: Border(top: BorderSide(color: t.colorScheme.outlineVariant.withValues(alpha: 0.6), width: 0.6))),
-            child: Row(children: [
-              for (var d = 0; d < 7; d++)
-                Expanded(
-                  child: Builder(builder: (context) {
-                    final n = s * 7 + d - vuoti + 1;
-                    return n < 1 || n > giorniMese ? const SizedBox(height: 48) : cella(n);
-                  }),
-                ),
-            ]),
-          ),
-        Divider(height: 1, thickness: 0.6, color: t.colorScheme.outlineVariant.withValues(alpha: 0.6)),
-        Sezione(giornoLungo(_giorno)),
-        if (delGiorno.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Text('Nessun appuntamento in questo giorno.',
-                style: t.textTheme.bodyMedium?.copyWith(color: t.colorScheme.onSurfaceVariant)),
-          )
-        else
-          for (final v in delGiorno) VoceTile(v),
-      ],
-    );
+      Container(height: 0.6, color: linea.color),
+      Expanded(
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.only(bottom: 24),
+          children: [
+            Sezione(giornoLungo(_giorno)),
+            if (delGiorno.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Text('Nessun appuntamento in questo giorno.',
+                    style: t.textTheme.bodyMedium?.copyWith(color: t.colorScheme.onSurfaceVariant)),
+              )
+            else
+              for (final v in delGiorno) VoceTile(v),
+          ],
+        ),
+      ),
+    ]);
   }
 
   // pallino per un appuntamento, trattino per piu' appuntamenti dello stesso tipo
@@ -225,21 +238,10 @@ class _Elenco extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final t = Theme.of(context);
     final oggi = oggiApp();
     final righe = <Widget>[
       Card(
-        color: t.colorScheme.primaryContainer,
-        margin: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-        child: ListTile(
-          contentPadding: const EdgeInsets.fromLTRB(8, 8, 16, 8),
-          leading: Image.asset('assets/logo.png', width: 64, height: 64),
-          title: Text(p.edizione.nome.isEmpty ? 'Palio dei rioni' : p.edizione.nome,
-              style: TextStyle(fontWeight: FontWeight.w700, color: t.colorScheme.onPrimaryContainer)),
-          subtitle: Text(intervallo(p.edizione.inizio, p.edizione.fine), style: TextStyle(color: t.colorScheme.onPrimaryContainer)),
-        ),
-      ),
-      Card(
+        margin: const EdgeInsets.fromLTRB(16, 12, 16, 6),
         child: ListTile(
           leading: const Icon(Icons.sports_volleyball),
           title: const Text('Partite di pallavolo'),
