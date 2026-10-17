@@ -17,7 +17,7 @@ API pubbliche del portale.
 | Classifica | `GET /api/classifica/dettaglio`, `GET /api/archivio`, `GET /api/rioni` | edizione in corso (punti per gioco) e albo d'oro, con gli stemmi dei rioni |
 | Giochi | `GET /api/giochi`, `GET /api/calendario` | i giochi del programma con la ricerca; ogni gioco apre la sua pagina |
 | Pagina del gioco | `GET /api/giochi/:id` | menu: data e orario, classifica (provvisoria o definitiva), regolamento, criteri di valutazione, punteggio |
-| Sponsor | `GET /api/sponsor`, `/api/sponsor/:id/logo` | tocco sul logo = sito dello sponsor |
+| Social | `GET /api/sponsor`, `/api/sponsor/:id/logo` | pagine Facebook e Instagram del Palio (`lib/screens/social.dart`), sotto i loghi degli sponsor se il portale ne pubblica |
 
 ## Promemoria (notifiche)
 

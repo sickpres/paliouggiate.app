@@ -3,48 +3,11 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../api.dart';
 import '../models.dart';
-import '../widgets/comuni.dart';
 
-class PaginaSponsor extends StatelessWidget {
-  const PaginaSponsor({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Sponsor')),
-      body: DatiRemoti<List<Sponsor>>(
-        carica: Api.instance.sponsor,
-        costruisci: (context, lista) {
-          if (lista.isEmpty) {
-            return ListView(physics: const AlwaysScrollableScrollPhysics(), children: const [
-              Messaggio(
-                icona: Icons.handshake_outlined,
-                titolo: 'Sponsor in arrivo',
-                testo: 'Gli sponsor che sostengono il Palio saranno pubblicati qui a breve.',
-              ),
-            ]);
-          }
-          return GridView.builder(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(16),
-            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-              maxCrossAxisExtent: 200,
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-              childAspectRatio: 1.1,
-            ),
-            itemCount: lista.length,
-            itemBuilder: (context, i) => _Logo(lista[i]),
-          );
-        },
-      ),
-    );
-  }
-}
-
-class _Logo extends StatelessWidget {
+/// Logo di uno sponsor (nella scheda Social): tocco = sito dello sponsor.
+class LogoSponsor extends StatelessWidget {
   final Sponsor s;
-  const _Logo(this.s);
+  const LogoSponsor(this.s, {super.key});
 
   Future<void> _apri(BuildContext context) async {
     final uri = Uri.tryParse(s.sito);
