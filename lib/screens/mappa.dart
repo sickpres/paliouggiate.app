@@ -12,6 +12,8 @@ import '../widgets/comuni.dart';
 
 const _canale = MethodChannel('palio/mappa');
 String? _chiaveImpostata; // Google Maps accetta la chiave una volta sola per avvio dell'app
+// solo per le prove nel simulatore: --dart-define=PROVA_SENZA_STILE=true apre la mappa senza lo stile cloud
+const _provaSenzaStile = bool.fromEnvironment('PROVA_SENZA_STILE');
 
 /// Mappa a tutta pagina (Google Maps, stile dal portale) con i confini dei rioni e i loro stemmi.
 class PaginaMappa extends StatefulWidget {
@@ -25,6 +27,7 @@ class _PaginaMappaState extends State<PaginaMappa> {
   late Future<ConfigMappa> _config = _carica();
   final _stemmi = <int, BitmapDescriptor>{};
   GoogleMapController? _mappa;
+  bool _inquadrata = false;
   String? _scelto;
 
   Future<ConfigMappa> _carica() async {
@@ -146,7 +149,7 @@ class _PaginaMappaState extends State<PaginaMappa> {
     }
     return Stack(children: [
       GoogleMap(
-        mapId: c.stile.isEmpty ? null : c.stile,
+        mapId: c.stile.isEmpty || _provaSenzaStile ? null : c.stile,
         initialCameraPosition: CameraPosition(
             target: limiti == null
                 ? const LatLng(45.82, 8.96)
@@ -157,12 +160,12 @@ class _PaginaMappaState extends State<PaginaMappa> {
         myLocationButtonEnabled: false,
         mapToolbarEnabled: false,
         zoomControlsEnabled: false,
-        onMapCreated: (m) {
-          _mappa = m;
-          if (limiti != null) {
-            // tutti i rioni nello schermo, appena la mappa ha le sue misure
-            Future.delayed(const Duration(milliseconds: 300), () => _mappa?.animateCamera(CameraUpdate.newLatLngBounds(limiti, 36)));
-          }
+        onMapCreated: (m) => _mappa = m,
+        // tutti i rioni nello schermo: la prima volta che la mappa e' ferma (prima non conosce ancora le sue misure)
+        onCameraIdle: () {
+          if (_inquadrata || limiti == null || _mappa == null) return;
+          _inquadrata = true;
+          _mappa!.animateCamera(CameraUpdate.newLatLngBounds(limiti, 24));
         },
         onTap: (_) => setState(() => _scelto = null),
       ),

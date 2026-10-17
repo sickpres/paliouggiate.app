@@ -5,12 +5,14 @@ import '../widgets/icone_tratto.dart';
 import 'calendario.dart';
 import 'classifica.dart';
 import 'giochi.dart';
+import 'mappa.dart';
 import 'oggi.dart';
 import 'pallavolo.dart';
 import 'social.dart';
 
-// solo per le schermate di prova nel simulatore: --dart-define=PROVA_PALLAVOLO=true
+// solo per le schermate di prova nel simulatore: --dart-define=PROVA_PALLAVOLO=true / PROVA_MAPPA_GOOGLE=true
 const _provaPallavolo = bool.fromEnvironment('PROVA_PALLAVOLO');
+const _provaMappaGoogle = bool.fromEnvironment('PROVA_MAPPA_GOOGLE');
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -38,6 +40,10 @@ class _HomeState extends State<Home> {
   void initState() {
     super.initState();
     _ciclo = AppLifecycleListener(onResume: Promemoria.aggiorna);
+    if (_provaMappaGoogle) {
+      WidgetsBinding.instance.addPostFrameCallback(
+          (_) => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PaginaMappa())));
+    }
     if (_provaPallavolo) {
       WidgetsBinding.instance.addPostFrameCallback(
           (_) => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PaginaPallavolo())));
