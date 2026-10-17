@@ -16,7 +16,7 @@ API pubbliche del portale.
 | Partite di pallavolo | `GET /api/partite/pallavolo`, `GET /api/rioni` | filtro per rione, ricordato sul telefono (`SharedPreferences`, chiave `rione_pallavolo`) |
 | Classifica | `GET /api/classifica/dettaglio`, `GET /api/archivio`, `GET /api/rioni` | edizione in corso (punti per gioco) e albo d'oro, con gli stemmi dei rioni |
 | Giochi | `GET /api/giochi`, `GET /api/calendario` | i giochi del programma con la ricerca; ogni gioco apre la sua pagina |
-| Pagina del gioco | `GET /api/giochi/:id` | menu in basso: Info (data, orario, luogo), Classifica (provvisoria o definitiva), Regolamento, Criteri, Punteggio |
+| Pagina del gioco | `GET /api/giochi/:id` | menu in basso: Info (data, orario, luogo), Classifica (provvisoria o definitiva), Regole, Criteri, Punteggio |
 | Social | `GET /api/sponsor`, `/api/sponsor/:id/logo` | pagine Facebook e Instagram del Palio (`lib/screens/social.dart`), sotto i loghi degli sponsor se il portale ne pubblica |
 
 ## Promemoria (notifiche)

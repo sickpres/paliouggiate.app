@@ -47,7 +47,7 @@ class _PaginaGiocoState extends State<PaginaGioco> {
   static const _voci = [
     VoceMenu('info', 'Info'),
     VoceMenu('classifica_gioco', 'Classifica'),
-    VoceMenu('regolamento_gioco', 'Regolamento'),
+    VoceMenu('regolamento_gioco', 'Regole'),
     VoceMenu('criteri', 'Criteri'),
     VoceMenu('punteggio', 'Punteggio'),
   ];
@@ -79,8 +79,8 @@ class _PaginaGiocoState extends State<PaginaGioco> {
           final figli = switch (_scheda) {
             0 => _quando(context, g),
             1 => _classifica(context, g, rioni),
-            2 => _testo(context, g.regolamento, Icons.menu_book, 'Regolamento non ancora pubblicato'),
-            3 => _testo(context, g.criteri, Icons.rule, 'Criteri di valutazione non ancora pubblicati'),
+            2 => _testo(context, g.regolamento, Icons.menu_book, 'Regole non ancora pubblicate', 'Saranno pubblicate qui appena pronte.'),
+            3 => _testo(context, g.criteri, Icons.rule, 'Criteri di valutazione non ancora pubblicati', 'Saranno pubblicati qui appena pronti.'),
             _ => _punteggio(context, g),
           };
           return RefreshIndicator(
@@ -187,9 +187,9 @@ class _PaginaGiocoState extends State<PaginaGioco> {
     ];
   }
 
-  List<Widget> _testo(BuildContext context, String testo, IconData icona, String vuoto) {
+  List<Widget> _testo(BuildContext context, String testo, IconData icona, String vuoto, String quando) {
     if (testo.trim().isEmpty || testo.trim() == '<p></p>') {
-      return [Messaggio(icona: icona, titolo: vuoto, testo: 'Sarà pubblicato qui appena pronto.')];
+      return [Messaggio(icona: icona, titolo: vuoto, testo: quando)];
     }
     return [
       Card(
