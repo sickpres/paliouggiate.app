@@ -22,10 +22,13 @@ class PaginaGioco extends StatefulWidget {
 
 class _PaginaGiocoState extends State<PaginaGioco> {
   late Future<(SchedaGioco, List<Rione>)> _futuro = _carica();
+  SchedaGioco? _gioco; // nome e icona dal portale appena arrivano
 
   Future<(SchedaGioco, List<Rione>)> _carica() async {
     final r = await Future.wait<Object>([Api.instance.gioco(widget.id), rioniInCache()]);
-    return (r[0] as SchedaGioco, r[1] as List<Rione>);
+    final g = r[0] as SchedaGioco;
+    if (mounted) setState(() => _gioco = g);
+    return (g, r[1] as List<Rione>);
   }
 
   Future<void> _ricarica() async {
@@ -55,9 +58,9 @@ class _PaginaGiocoState extends State<PaginaGioco> {
       child: Scaffold(
         appBar: AppBar(
           title: Row(children: [
-            Icon(iconaGioco(widget.tipo), size: 22),
+            Icon(iconaGioco(_gioco?.tipo ?? widget.tipo), size: 22),
             const SizedBox(width: 10),
-            Expanded(child: Text(widget.nome, overflow: TextOverflow.ellipsis)),
+            Expanded(child: Text(_gioco?.nome ?? widget.nome, overflow: TextOverflow.ellipsis)),
           ]),
           bottom: TabBar(
             isScrollable: true,

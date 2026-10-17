@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'promemoria.dart';
@@ -13,6 +14,9 @@ const cielo = Color(0xFFD8EDFC);
 const rosso = Color(0xFFC62B2B);
 
 void main() {
+  // solo in verticale (anche in Info.plist)
+  WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   runApp(const PalioApp());
   Promemoria.aggiorna();
 }
