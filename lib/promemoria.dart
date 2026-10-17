@@ -75,7 +75,8 @@ class Promemoria {
     }
   }
 
-  /// Testo del promemoria; se il rione scelto gioca o arbitra una partita di pallavolo quel giorno, la si aggiunge.
+  /// Testo del promemoria; se il rione scelto gioca una partita di pallavolo quel giorno, la si aggiunge
+  /// (le partite che arbitra no, come nel filtro della pagina della pallavolo).
   @visibleForTesting
   static String testoPer(Notifica n, int? rione, Map<int, String> rioni) {
     if (rione == null || n.partite.isEmpty) return n.testo;
@@ -86,8 +87,6 @@ class Promemoria {
       if (p.rioneA == rione || p.rioneB == rione) {
         final avversario = rioni[p.rioneA == rione ? p.rioneB : p.rioneA] ?? '?';
         extra.add('alle ${p.ora} $nome gioca contro $avversario');
-      } else if (p.arbitro == rione) {
-        extra.add('alle ${p.ora} $nome arbitra ${rioni[p.rioneA] ?? '?'}–${rioni[p.rioneB] ?? '?'}');
       }
     }
     return extra.isEmpty ? n.testo : '${n.testo} Pallavolo: ${extra.join('; ')}.';
