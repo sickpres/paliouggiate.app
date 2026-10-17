@@ -74,6 +74,8 @@ class Api {
     return [for (final x in _lista(d['piano'])) Notifica.fromJson(x)].whereType<Notifica>().toList();
   }
 
+  Future<SchedaGioco> gioco(int id) async => SchedaGioco.fromJson(_mappa(await _get('giochi/$id')));
+
   Future<List<Sponsor>> sponsor() async => _lista(await _get('sponsor')).map(Sponsor.fromJson).toList();
 
   String logoRione(Rione r) => '${url('rioni/${r.id}/logo')}?v=${r.logoVersione}';

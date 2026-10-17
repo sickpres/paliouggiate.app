@@ -3,24 +3,26 @@ import 'package:flutter/material.dart';
 import '../api.dart';
 import '../models.dart';
 import '../widgets/comuni.dart';
+import 'gioco.dart';
 
-/// Un gioco del programma: le sue date e, se pubblicata, la sua classifica.
+// --dart-define=PROVA_CERCA=testo scrive nel campo di ricerca; PROVA_GIOCO=id apre la pagina del gioco (schermate di prova)
+const _provaCerca = String.fromEnvironment('PROVA_CERCA');
+const _provaGioco = int.fromEnvironment('PROVA_GIOCO');
+
+/// Un gioco del programma: le sue date e, se c'e', la sua classifica (definitiva o provvisoria).
 class _Scheda {
+  final int id;
   final String nome;
   final String tipo;
   final List<Voce> sessioni;
   final Gioco? risultati;
-  _Scheda(this.nome, this.tipo, this.sessioni, this.risultati);
+  _Scheda(this.id, this.nome, this.tipo, this.sessioni, this.risultati);
+
+  String get chi => sessioni.isNotEmpty ? sessioni.first.chi : (risultati?.chi ?? '');
 }
 
-class _Dati {
-  final List<_Scheda> schede;
-  final List<Rione> rioni;
-  _Dati(this.schede, this.rioni);
-}
-
-Future<_Dati> _carica() async {
-  final r = await Future.wait([Api.instance.giochi(), Api.instance.calendario(), rioniInCache()]);
+Future<List<_Scheda>> _carica() async {
+  final r = await Future.wait([Api.instance.giochi(), Api.instance.calendario()]);
   final pubblicati = r[0] as List<Gioco>;
   final voci = (r[1] as List<Voce>).where((v) => !v.evento && v.giocoId != null);
   final perGioco = <int, List<Voce>>{};
@@ -29,9 +31,9 @@ Future<_Dati> _carica() async {
   }
   final schede = <_Scheda>[];
   for (final g in pubblicati) {
-    schede.add(_Scheda(g.nome, g.tipo, perGioco.remove(g.id) ?? const [], g));
+    schede.add(_Scheda(g.id, g.nome, g.tipo, perGioco.remove(g.id) ?? const [], g));
   }
-  perGioco.forEach((_, s) => schede.add(_Scheda(s.first.titolo, s.first.tipo, s, null)));
+  perGioco.forEach((id, s) => schede.add(_Scheda(id, s.first.titolo, s.first.tipo, s, null)));
   // prima i giochi conclusi, poi quelli in corso, poi gli altri; a parita' in ordine di data
   int peso(_Scheda s) => s.risultati == null ? 2 : (s.risultati!.parziale ? 1 : 0);
   schede.sort((a, b) {
@@ -40,48 +42,111 @@ Future<_Dati> _carica() async {
     final db = b.sessioni.isEmpty ? DateTime(9999) : b.sessioni.first.data;
     return da.compareTo(db);
   });
-  return _Dati(schede, r[2] as List<Rione>);
+  return schede;
 }
 
-class PaginaGiochi extends StatelessWidget {
+// ricerca senza badare a maiuscole e accenti, parola per parola
+String _semplice(String s) {
+  const da = 'àáâäèéêëìíîïòóôöùúûü';
+  const a = 'aaaaeeeeiiiioooouuuu';
+  final b = StringBuffer();
+  for (final ch in s.toLowerCase().split('')) {
+    final i = da.indexOf(ch);
+    b.write(i >= 0 ? a[i] : ch);
+  }
+  return b.toString();
+}
+
+bool _trova(_Scheda s, String cerca) {
+  final dove = _semplice('${s.nome} ${s.chi} ${s.tipo.replaceAll('_', ' ')}');
+  return _semplice(cerca).split(RegExp(r'\s+')).where((p) => p.isNotEmpty).every(dove.contains);
+}
+
+class PaginaGiochi extends StatefulWidget {
   const PaginaGiochi({super.key});
 
   @override
+  State<PaginaGiochi> createState() => _PaginaGiochiState();
+}
+
+class _PaginaGiochiState extends State<PaginaGiochi> {
+  final _cerca = TextEditingController(text: _provaCerca);
+
+  @override
+  void initState() {
+    super.initState();
+    if (_provaGioco > 0) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => Navigator.of(context)
+          .push(MaterialPageRoute(builder: (_) => const PaginaGioco(id: _provaGioco, nome: 'Gioco', tipo: ''))));
+    }
+  }
+
+  @override
+  void dispose() {
+    _cerca.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final t = Theme.of(context);
     return Scaffold(
       appBar: AppBar(title: const Text('Giochi')),
-      body: DatiRemoti<_Dati>(
-        carica: _carica,
-        costruisci: (context, d) {
-          if (d.schede.isEmpty) {
-            return ListView(physics: const AlwaysScrollableScrollPhysics(), children: const [
-              Messaggio(icona: Icons.sports, titolo: 'Nessun gioco in programma', testo: 'I giochi dell\'edizione compariranno qui.'),
-            ]);
-          }
-          final conRisultati = d.schede.where((s) => s.risultati != null).length;
-          return ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.only(bottom: 24),
-            children: [
-              if (conRisultati == 0)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-                  child: Text('I risultati di ogni gioco compariranno qui man mano che vengono inseriti.',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
-                ),
-              for (final s in d.schede) _SchedaGioco(s, d.rioni),
-            ],
-          );
-        },
-      ),
+      body: Column(children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+          child: TextField(
+            controller: _cerca,
+            onChanged: (_) => setState(() {}),
+            textInputAction: TextInputAction.search,
+            decoration: InputDecoration(
+              hintText: 'Cerca un gioco',
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: _cerca.text.isEmpty
+                  ? null
+                  : IconButton(
+                      tooltip: 'Cancella la ricerca',
+                      icon: const Icon(Icons.close),
+                      onPressed: () => setState(_cerca.clear),
+                    ),
+              filled: true,
+              fillColor: t.colorScheme.surfaceContainerLowest,
+              isDense: true,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(28), borderSide: BorderSide.none),
+            ),
+          ),
+        ),
+        Expanded(
+          child: DatiRemoti<List<_Scheda>>(
+            carica: _carica,
+            costruisci: (context, tutte) {
+              if (tutte.isEmpty) {
+                return ListView(physics: const AlwaysScrollableScrollPhysics(), children: const [
+                  Messaggio(icona: Icons.sports, titolo: 'Nessun gioco in programma', testo: 'I giochi dell\'edizione compariranno qui.'),
+                ]);
+              }
+              final schede = tutte.where((s) => _trova(s, _cerca.text)).toList();
+              return ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                padding: const EdgeInsets.only(top: 4, bottom: 24),
+                children: [
+                  if (schede.isEmpty)
+                    Messaggio(icona: Icons.search_off, titolo: 'Nessun gioco trovato', testo: 'Nessun gioco corrisponde a «${_cerca.text.trim()}».'),
+                  for (final s in schede) _RigaGioco(s),
+                ],
+              );
+            },
+          ),
+        ),
+      ]),
     );
   }
 }
 
-class _SchedaGioco extends StatelessWidget {
+class _RigaGioco extends StatelessWidget {
   final _Scheda s;
-  final List<Rione> rioni;
-  const _SchedaGioco(this.s, this.rioni);
+  const _RigaGioco(this.s);
 
   @override
   Widget build(BuildContext context) {
@@ -92,84 +157,22 @@ class _SchedaGioco extends StatelessWidget {
             ? '${giornoLungo(s.sessioni.first.data)}, ore ${s.sessioni.first.ora}'
             : '${s.sessioni.length} appuntamenti, dal ${giornoLungo(s.sessioni.first.data).toLowerCase()}')
         : intervallo(g?.dataInizio, g?.dataFine);
-    final chi = s.sessioni.isNotEmpty ? s.sessioni.first.chi : (g?.chi ?? '');
-    final dove = s.sessioni.isNotEmpty ? s.sessioni.first.luogo : (g?.luogo ?? '');
     return Card(
       clipBehavior: Clip.antiAlias,
-      child: Theme(
-        data: t.copyWith(dividerColor: Colors.transparent),
-        child: ExpansionTile(
-          leading: CircleAvatar(
-            backgroundColor: g != null ? t.colorScheme.primaryContainer : t.colorScheme.surfaceContainerHighest,
-            child: Icon(iconaGioco(s.tipo), color: g != null ? t.colorScheme.onPrimaryContainer : t.colorScheme.onSurfaceVariant),
-          ),
-          title: Text(s.nome, style: t.textTheme.titleMedium),
-          subtitle: Text([quando, if (chi.isNotEmpty) chi].where((x) => x.isNotEmpty).join(' · ')),
-          trailing: g != null ? Chip(label: Text(g.parziale ? 'In corso' : 'Risultati'), visualDensity: VisualDensity.compact) : null,
-          childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-          expandedCrossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (dove.isNotEmpty) _Riga(Icons.place_outlined, dove),
-            if (s.sessioni.length > 1)
-              for (final v in s.sessioni)
-                _Riga(Icons.schedule, '${giornoLungo(v.data)}, ore ${v.ora}${v.note.isNotEmpty ? ' · ${v.note}' : ''}'),
-            if (g == null)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Text('Classifica non ancora pubblicata.', style: t.textTheme.bodyMedium?.copyWith(fontStyle: FontStyle.italic)),
-              )
-            else ...[
-              const SizedBox(height: 8),
-              Text(g.parziale ? 'Classifica provvisoria' : 'Classifica', style: t.textTheme.titleSmall),
-              if (g.parziale)
-                Padding(
-                  padding: const EdgeInsets.only(top: 2, bottom: 4),
-                  child: Text(
-                      g.mancanti > 0
-                          ? 'Gara in corso: ${ancoraDaGiocare(g.mancanti, g.unita)} alla fine. I punti del Palio si assegnano a gara conclusa.'
-                          : 'Tutti i risultati sono inseriti: si attende la conferma per assegnare i punti del Palio.',
-                      style: t.textTheme.bodySmall?.copyWith(fontStyle: FontStyle.italic)),
-                ),
-              for (final p in g.classifica)
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  dense: true,
-                  leading: SizedBox(
-                    width: 68,
-                    child: Row(children: [
-                      SizedBox(width: 30, child: Text('${p.posizione}°', style: const TextStyle(fontWeight: FontWeight.w800))),
-                      SegnoRione(rione: rionePerNome(rioni, p.nome), colore: p.colore, lato: 30),
-                    ]),
-                  ),
-                  title: Text(p.nome),
-                  subtitle: p.dettaglio.isEmpty ? null : Text(p.dettaglio),
-                  trailing: p.punti == null ? null : Text('${p.punti} pt', style: t.textTheme.titleSmall),
-                ),
-              for (final gr in g.dettaglio.where((x) => x.righe.isNotEmpty)) ...[
-                const SizedBox(height: 8),
-                Text(gr.gruppo, style: t.textTheme.titleSmall),
-                for (final r in gr.righe) Padding(padding: const EdgeInsets.only(top: 2), child: Text('• $r')),
-              ],
-            ],
-          ],
+      child: ListTile(
+        contentPadding: const EdgeInsets.fromLTRB(16, 6, 8, 6),
+        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => PaginaGioco(id: s.id, nome: s.nome, tipo: s.tipo))),
+        leading: CircleAvatar(
+          backgroundColor: g != null ? t.colorScheme.primaryContainer : t.colorScheme.surfaceContainerHighest,
+          child: Icon(iconaGioco(s.tipo), color: g != null ? t.colorScheme.onPrimaryContainer : t.colorScheme.onSurfaceVariant),
         ),
+        title: Text(s.nome, style: t.textTheme.titleMedium),
+        subtitle: Text([quando, if (s.chi.isNotEmpty) s.chi].where((x) => x.isNotEmpty).join(' · ')),
+        trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+          if (g != null) Chip(label: Text(g.parziale ? 'In corso' : 'Risultati'), visualDensity: VisualDensity.compact),
+          const Icon(Icons.chevron_right),
+        ]),
       ),
     );
   }
-}
-
-class _Riga extends StatelessWidget {
-  final IconData icona;
-  final String testo;
-  const _Riga(this.icona, this.testo);
-
-  @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(top: 4),
-        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Icon(icona, size: 18, color: Theme.of(context).colorScheme.onSurfaceVariant),
-          const SizedBox(width: 8),
-          Expanded(child: Text(testo)),
-        ]),
-      );
 }

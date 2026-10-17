@@ -315,3 +315,87 @@ class Notifica {
     );
   }
 }
+
+/// Un appuntamento di un gioco (giorno, ora, luogo).
+class Appuntamento {
+  final DateTime data;
+  final String ora;
+  final String luogo;
+  final String chi;
+  final String note;
+  Appuntamento(this.data, this.ora, this.luogo, this.chi, this.note);
+}
+
+/// Classifica di un gioco nella sua scheda: definitiva (con i punti del Palio) o provvisoria.
+class ClassificaGioco {
+  final bool definitiva;
+  final int mancanti;
+  final String unita;
+  final List<PostoGioco> righe;
+  final List<GruppoRisultati> dettaglio;
+  ClassificaGioco(this.definitiva, this.mancanti, this.unita, this.righe, this.dettaglio);
+}
+
+/// Scheda completa di un gioco (GET /api/giochi/:id).
+class SchedaGioco {
+  final int id;
+  final String tipo;
+  final String nome;
+  final String chi;
+  final String luogo;
+  final String regolamento; // HTML dell'editor del pannello oppure testo semplice
+  final String criteri;
+  final List<int> puntiPosizioni;
+  final bool haPartite;
+  final List<Appuntamento> appuntamenti;
+  final ClassificaGioco? classifica;
+  SchedaGioco({
+    required this.id,
+    required this.tipo,
+    required this.nome,
+    required this.chi,
+    required this.luogo,
+    required this.regolamento,
+    required this.criteri,
+    required this.puntiPosizioni,
+    required this.haPartite,
+    required this.appuntamenti,
+    required this.classifica,
+  });
+
+  factory SchedaGioco.fromJson(Map<String, dynamic> j) {
+    final c = j['classifica'] is Map ? Map<String, dynamic>.from(j['classifica'] as Map) : null;
+    return SchedaGioco(
+      id: _i(j['id']),
+      tipo: _s(j['tipo']),
+      nome: _s(j['nome']),
+      chi: _s(j['chi']),
+      luogo: _s(j['luogo']),
+      regolamento: _s(j['regolamento']),
+      criteri: _s(j['criteri']),
+      puntiPosizioni: [for (final x in (j['punti_posizioni'] as List? ?? const [])) _i(x)],
+      haPartite: j['partite'] == true,
+      appuntamenti: [
+        for (final a in (j['sessioni'] as List? ?? const []))
+          if (DateTime.tryParse(_s(a['data'])) != null)
+            Appuntamento(DateTime.parse(_s(a['data'])), _s(a['ora']), _s(a['luogo']), _s(a['chi']), _s(a['note']))
+      ],
+      classifica: c == null
+          ? null
+          : ClassificaGioco(
+              c['definitiva'] == true,
+              _i(c['mancanti']),
+              _s(c['unita']).isEmpty ? 'risultati' : _s(c['unita']),
+              [
+                for (final r in (c['righe'] as List? ?? const []))
+                  PostoGioco(_i(r['rione_id']), _i(r['posizione']), _s(r['nome']), _s(r['colore']),
+                      r['punti'] == null ? null : _i(r['punti']), _s(r['dettaglio']))
+              ],
+              [
+                for (final d in (c['dettaglio'] as List? ?? const []))
+                  GruppoRisultati(_s(d['gruppo']), [for (final x in (d['righe'] as List? ?? const [])) _s(x)])
+              ],
+            ),
+    );
+  }
+}
