@@ -79,35 +79,22 @@ class _PaginaMappaState extends State<PaginaMappa> {
     return LatLng(y / (3 * area), x / (3 * area));
   }
 
-  static double _area(List<(double, double)> a) {
-    double s = 0;
-    for (var i = 0; i < a.length; i++) {
-      final p = a[i], q = a[(i + 1) % a.length];
-      s += p.$2 * q.$1 - q.$2 * p.$1;
-    }
-    return s.abs() / 2;
-  }
-
-  // Stemmi da mostrare a uno zoom: si proiettano sullo schermo (Web Mercator, tile da 256 punti) e, se due si
-  // toccano, resta quello del rione piu' grande. Lo stemma e' largo 40 punti; 4 di margine.
+  // Stemmi da mostrare a uno zoom: si proiettano sullo schermo (Web Mercator, tile da 256 punti); se anche solo
+  // due si toccano spariscono tutti, e tornano tutti insieme quando c'e' spazio. Lo stemma e' largo 40 punti; 4 di margine.
   static Set<int> _stemmiVisibili(ConfigMappa c, double zoom) {
     final scala = 256 * math.pow(2, zoom).toDouble();
     Offset schermo(LatLng p) {
       final s = math.sin(p.latitude * math.pi / 180).clamp(-0.9999, 0.9999);
       return Offset((p.longitude + 180) / 360 * scala, (0.5 - math.log((1 + s) / (1 - s)) / (4 * math.pi)) * scala);
     }
-    final rioni = c.rioni.where((r) => r.anelli.isNotEmpty).toList()
-      ..sort((a, b) => _area(b.anelli.reduce((x, y) => x.length >= y.length ? x : y)).compareTo(_area(a.anelli.reduce((x, y) => x.length >= y.length ? x : y))));
-    final tenuti = <Offset>[];
-    final out = <int>{};
-    for (final r in rioni) {
-      final p = schermo(_centro(r.anelli.reduce((a, b) => a.length >= b.length ? a : b)));
-      if (tenuti.every((q) => (q - p).distance >= 44)) {
-        tenuti.add(p);
-        out.add(r.rione.id);
+    final rioni = c.rioni.where((r) => r.anelli.isNotEmpty).toList();
+    final punti = [for (final r in rioni) schermo(_centro(r.anelli.reduce((a, b) => a.length >= b.length ? a : b)))];
+    for (var i = 0; i < punti.length; i++) {
+      for (var j = i + 1; j < punti.length; j++) {
+        if ((punti[i] - punti[j]).distance < 44) return <int>{};
       }
     }
-    return out;
+    return {for (final r in rioni) r.rione.id};
   }
 
   static LatLngBounds? _limiti(ConfigMappa c) {
