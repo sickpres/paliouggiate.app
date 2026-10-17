@@ -226,7 +226,13 @@ class _Scheda extends StatelessWidget {
             Expanded(child: Text(nome, style: t.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700))),
           ]),
           const SizedBox(height: 8),
-          Text(r != null && r.descrizione.isNotEmpty ? r.descrizione : 'Scheda del rione in arrivo.'),
+          if (r != null && r.descrizione.isNotEmpty) Padding(padding: const EdgeInsets.only(bottom: 6), child: Text(r.descrizione)),
+          Text.rich(TextSpan(children: [
+            const TextSpan(text: 'Capo rione: '),
+            TextSpan(
+                text: r != null && r.capoRione.isNotEmpty ? r.capoRione : 'da definire',
+                style: const TextStyle(fontWeight: FontWeight.w700)),
+          ])),
           for (final (k, v) in voci) ...[
             const SizedBox(height: 10),
             Text(k.toUpperCase(),
