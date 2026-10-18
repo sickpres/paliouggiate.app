@@ -6,10 +6,9 @@ import '../api.dart';
 import '../models.dart';
 import '../widgets/comuni.dart';
 import '../widgets/icone_tratto.dart';
-import '../widgets/mappa.dart';
-import 'mappa.dart';
 import 'calendario.dart';
 import 'documenti.dart';
+import 'rioni.dart';
 import 'sponsor.dart';
 
 // solo per le schermate di prova nel simulatore: --dart-define=PROVA_TELECRONACA="testo"
@@ -141,17 +140,23 @@ class _Contenuto extends StatelessWidget {
           Sezione('Prossimo appuntamento · ${giornoLungo(prossimo.first.data)}'),
           for (final v in prossimo) VoceTile(v),
         ],
-        Sezione(
-          'I rioni',
-          // la mappa vera (Google Maps) con i confini dei rioni, a tutta pagina
-          coda: FilledButton.tonalIcon(
-            onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PaginaMappa())),
-            icon: const IconaTratto('mappa', lato: 18),
-            label: const Text('Mappa'),
-            style: FilledButton.styleFrom(visualDensity: VisualDensity.compact),
+        // la mappa dei rioni e le loro schede, in una pagina a parte
+        Card(
+          margin: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+          clipBehavior: Clip.antiAlias,
+          child: ListTile(
+            contentPadding: const EdgeInsets.fromLTRB(16, 10, 12, 10),
+            leading: CircleAvatar(
+              radius: 24,
+              backgroundColor: t.colorScheme.primary,
+              child: IconaTratto('mappa', lato: 24, colore: t.colorScheme.onPrimary),
+            ),
+            title: Text('Rioni', style: t.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+            subtitle: const Text('La mappa degli otto rioni e le loro schede'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PaginaRioni())),
           ),
         ),
-        const MappaRioni(),
         const _SponsorESocial(),
         const _RegolamentoEModuli(),
       ],

@@ -9,12 +9,15 @@ import 'giochi.dart';
 import 'mappa.dart';
 import 'oggi.dart';
 import 'pallavolo.dart';
+import 'rioni.dart';
 
 // solo per le schermate di prova nel simulatore: --dart-define=PROVA_PALLAVOLO=true / PROVA_MAPPA_GOOGLE=true
 const _provaPallavolo = bool.fromEnvironment('PROVA_PALLAVOLO');
 const _provaMappaGoogle = bool.fromEnvironment('PROVA_MAPPA_GOOGLE');
 // --dart-define=PROVA_DOCUMENTI=true apre «Regolamento e moduli»
 const _provaDocumenti = bool.fromEnvironment('PROVA_DOCUMENTI');
+// --dart-define=PROVA_RIONI=true apre la pagina «Rioni»
+const _provaRioni = bool.fromEnvironment('PROVA_RIONI');
 
 const _schedaPallavolo = 4;
 
@@ -54,6 +57,10 @@ class _HomeState extends State<Home> {
     if (_provaMappaGoogle) {
       WidgetsBinding.instance.addPostFrameCallback(
           (_) => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PaginaMappa())));
+    }
+    if (_provaRioni) {
+      WidgetsBinding.instance.addPostFrameCallback(
+          (_) => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PaginaRioni())));
     }
     if (_provaDocumenti) {
       WidgetsBinding.instance.addPostFrameCallback(
