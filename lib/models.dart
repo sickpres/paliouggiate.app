@@ -1,6 +1,8 @@
 // Modelli delle risposte JSON del portale (server/server.js, server/giochi.js,
 // server/contabilita.js nel repository paliouggiate).
 
+import 'package:flutter/foundation.dart';
+
 String _s(dynamic v) => v == null ? '' : v.toString();
 int _i(dynamic v) => v is int ? v : int.tryParse(_s(v)) ?? 0;
 
@@ -431,7 +433,10 @@ class ConfigMappa {
 
   factory ConfigMappa.fromJson(Map<String, dynamic> j) => ConfigMappa(
         chiaveIos: _s(j['chiave_ios']),
-        stile: _s(j['stile']),
+        // un map ID per piattaforma (l'SDK ignora quelli di un altro tipo); «stile» e' il campo dei portali precedenti
+        stile: defaultTargetPlatform == TargetPlatform.android
+            ? _s(j['stile_android'])
+            : _s(j['stile_ios'] ?? j['stile']),
         approssimati: j['confini_approssimati'] == true,
         rioni: [
           for (final r in (j['rioni'] as List? ?? const []))
