@@ -5,8 +5,8 @@ import '../api.dart';
 import '../models.dart';
 import '../widgets/comuni.dart';
 
-/// Pagina «Regolamento e moduli»: i documenti del portale nell'ordine scelto nel pannello. Un tocco apre il documento
-/// dentro l'app (il visore di Safari, da cui si puo' anche salvare o condividere); il bottone a destra lo scarica.
+/// Pagina «Regolamento e moduli»: i documenti del portale nell'ordine scelto nel pannello. Un tocco sulla riga o
+/// sull'icona di scaricamento apre il documento dentro l'app (il visore di Safari, da cui si salva o si condivide).
 // solo per le schermate di prova nel simulatore: --dart-define=PROVA_APRI_DOCUMENTO=true apre il primo documento
 const _provaApri = bool.fromEnvironment('PROVA_APRI_DOCUMENTO');
 
@@ -58,14 +58,6 @@ class _RigaDocumento extends StatelessWidget {
     }
   }
 
-  // nel browser del telefono, che lo salva (il portale lo manda come allegato)
-  Future<void> _scarica(BuildContext context) async {
-    final avvisi = ScaffoldMessenger.of(context);
-    if (!await launchUrl(Uri.parse(Api.instance.fileDocumento(d, scarica: true)), mode: LaunchMode.externalApplication)) {
-      avvisi.showSnackBar(const SnackBar(content: Text('Impossibile scaricare il documento')));
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context);
@@ -89,7 +81,7 @@ class _RigaDocumento extends StatelessWidget {
         trailing: IconButton(
           tooltip: 'Scarica',
           icon: const Icon(Icons.download),
-          onPressed: () => _scarica(context),
+          onPressed: () => _apri(context),
         ),
       ),
     );
