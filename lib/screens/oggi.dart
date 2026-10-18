@@ -94,7 +94,7 @@ class _Contenuto extends StatelessWidget {
         Image.asset('assets/logo.png', height: 150),
         const SizedBox(height: 12),
         if (d.edizione.nome.isNotEmpty)
-          Text(d.edizione.nome, textAlign: TextAlign.center, style: t.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
+          Text('Uggiate con Ronago · ${d.edizione.nome}', textAlign: TextAlign.center, style: t.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
         Text(intervallo(d.edizione.inizio, d.edizione.fine),
             textAlign: TextAlign.center, style: t.textTheme.bodyMedium?.copyWith(color: t.colorScheme.onSurfaceVariant)),
         if (stato != null)

@@ -15,7 +15,9 @@ class TestoRicco extends StatelessWidget {
       for (final b in blocchi)
         Padding(
           padding: EdgeInsets.only(bottom: b.punto == null ? 10 : 4, left: b.punto == null ? 0 : 4.0 + 18.0 * (b.livello - 1)),
-          child: b.punto == null
+          child: b.punto == null && b.pezzi.isEmpty
+              ? Text(' ', style: base) // riga vuota lasciata nel pannello
+              : b.punto == null
               ? Text.rich(TextSpan(children: b.pezzi), style: base)
               : Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   SizedBox(width: 26, child: Text(b.punto!, style: base)),
@@ -115,5 +117,13 @@ List<_Blocco> _leggi(String v) {
         corrente?.pezzi.add(const TextSpan(text: '\n'));
     }
   }
-  return out.where((b) => b.pezzi.isNotEmpty).toList();
+  // i paragrafi vuoti sono righe vuote volute (come nel pannello), tranne quelli in testa e in coda
+  final tenuti = out.where((b) => b.pezzi.isNotEmpty || b.punto == null).toList();
+  while (tenuti.isNotEmpty && tenuti.first.pezzi.isEmpty) {
+    tenuti.removeAt(0);
+  }
+  while (tenuti.isNotEmpty && tenuti.last.pezzi.isEmpty) {
+    tenuti.removeLast();
+  }
+  return tenuti;
 }
