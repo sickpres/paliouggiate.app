@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../api.dart';
 import '../models.dart';
 import '../widgets/comuni.dart';
+import '../widgets/griglia_mese.dart';
 import '../widgets/icone_tratto.dart';
 import 'gioco.dart';
 
@@ -20,7 +22,11 @@ class _Scheda {
   _Scheda(this.id, this.nome, this.tipo, this.sessioni, this.risultati);
 
   String get chi => sessioni.isNotEmpty ? sessioni.first.chi : (risultati?.chi ?? '');
+  String get categoria => risultati?.categoria ?? (sessioni.isNotEmpty ? sessioni.first.categoria : '');
 }
+
+// filtro per eta' scelto: resta lo stesso alle aperture successive
+const _kEta = 'eta_giochi';
 
 Future<List<_Scheda>> _carica() async {
   final r = await Future.wait([Api.instance.giochi(), Api.instance.calendario()]);
@@ -35,14 +41,8 @@ Future<List<_Scheda>> _carica() async {
     schede.add(_Scheda(g.id, g.nome, g.tipo, perGioco.remove(g.id) ?? const [], g));
   }
   perGioco.forEach((id, s) => schede.add(_Scheda(id, s.first.titolo, s.first.tipo, s, null)));
-  // prima i giochi conclusi, poi quelli in corso, poi gli altri; a parita' in ordine di data
-  int peso(_Scheda s) => s.risultati == null ? 2 : (s.risultati!.parziale ? 1 : 0);
-  schede.sort((a, b) {
-    if (peso(a) != peso(b)) return peso(a) - peso(b);
-    final da = a.sessioni.isEmpty ? DateTime(9999) : a.sessioni.first.data;
-    final db = b.sessioni.isEmpty ? DateTime(9999) : b.sessioni.first.data;
-    return da.compareTo(db);
-  });
+  // in ordine alfabetico, senza badare a maiuscole e accenti
+  schede.sort((a, b) => _semplice(a.nome).compareTo(_semplice(b.nome)));
   return schede;
 }
 
@@ -72,14 +72,28 @@ class PaginaGiochi extends StatefulWidget {
 
 class _PaginaGiochiState extends State<PaginaGiochi> {
   final _cerca = TextEditingController(text: _provaCerca);
+  String? _filtro = etaIniziale;
 
   @override
   void initState() {
     super.initState();
+    SharedPreferences.getInstance().then((p) {
+      final eta = p.getString(_kEta);
+      if (mounted && provaEta.isEmpty && opzioniEta.any((o) => o.valore == eta)) setState(() => _filtro = eta);
+    }).catchError((_) {});
     if (_provaGioco > 0) {
       WidgetsBinding.instance.addPostFrameCallback((_) => Navigator.of(context)
           .push(MaterialPageRoute(builder: (_) => const PaginaGioco(id: _provaGioco, nome: 'Gioco', tipo: ''))));
     }
+  }
+
+  Future<void> _filtra() async {
+    final o = await scegliFiltro(context, 'Giochi per età', opzioniEta, _filtro);
+    if (o == null || !mounted) return;
+    setState(() => _filtro = o.valore);
+    SharedPreferences.getInstance()
+        .then((p) => o.valore == null ? p.remove(_kEta) : p.setString(_kEta, o.valore!))
+        .catchError((_) => false);
   }
 
   @override
@@ -92,7 +106,13 @@ class _PaginaGiochiState extends State<PaginaGiochi> {
   Widget build(BuildContext context) {
     final t = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Giochi')),
+      appBar: AppBar(
+        title: Text(titoloConEta('Giochi', _filtro)),
+        actions: [
+          BottoneFiltra(attivo: _filtro != null, onPressed: _filtra),
+          const SizedBox(width: 4),
+        ],
+      ),
       body: Column(children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
@@ -126,14 +146,16 @@ class _PaginaGiochiState extends State<PaginaGiochi> {
                   Messaggio(icona: Icons.sports, titolo: 'Nessun gioco in programma', testo: 'I giochi dell\'edizione compariranno qui.'),
                 ]);
               }
-              final schede = tutte.where((s) => _trova(s, _cerca.text)).toList();
+              final schede = tutte.where((s) => perEta(s.categoria, _filtro) && _trova(s, _cerca.text)).toList();
               return ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
                 padding: const EdgeInsets.only(top: 4, bottom: 24),
                 children: [
                   if (schede.isEmpty)
-                    Messaggio(icona: Icons.search_off, titolo: 'Nessun gioco trovato', testo: 'Nessun gioco corrisponde a «${_cerca.text.trim()}».'),
+                    _cerca.text.trim().isEmpty
+                        ? const Messaggio(icona: Icons.search_off, titolo: 'Nessun gioco per questa età')
+                        : Messaggio(icona: Icons.search_off, titolo: 'Nessun gioco trovato', testo: 'Nessun gioco corrisponde a «${_cerca.text.trim()}».'),
                   for (final s in schede) _RigaGioco(s),
                 ],
               );

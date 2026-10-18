@@ -4,9 +4,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../api.dart';
 import '../models.dart';
 import '../widgets/comuni.dart';
+import '../widgets/griglia_mese.dart';
 import '../widgets/icone_tratto.dart';
 import 'gioco.dart';
-import 'pallavolo.dart';
+import 'home.dart';
 
 class _Programma {
   final Edizione edizione;
@@ -19,10 +20,14 @@ Future<_Programma> _carica() async {
   return _Programma(r[0] as Edizione, r[1] as List<Voce>);
 }
 
-// vista scelta (mese, di partenza, o elenco): resta la stessa alle aperture successive
+// vista scelta (mese, di partenza, o elenco) e filtro per eta': restano gli stessi alle aperture successive
 const _kVista = 'vista_calendario';
+const _kEta = 'eta_calendario';
 // solo per le schermate di prova nel simulatore: --dart-define=PROVA_ELENCO=true
 const _provaElenco = bool.fromEnvironment('PROVA_ELENCO');
+
+// filtro per eta': gli eventi restano sempre, perche' valgono per ogni eta'
+bool _perEta(Voce v, String? eta) => v.evento || perEta(v.categoria, eta);
 
 class PaginaCalendario extends StatefulWidget {
   const PaginaCalendario({super.key});
@@ -33,15 +38,19 @@ class PaginaCalendario extends StatefulWidget {
 
 class _PaginaCalendarioState extends State<PaginaCalendario> {
   bool _mese = !_provaElenco;
+  String? _filtro = etaIniziale;
 
   @override
   void initState() {
     super.initState();
-    if (!_provaElenco) {
-      SharedPreferences.getInstance().then((p) {
-        if (mounted && p.getString(_kVista) == 'elenco') setState(() => _mese = false);
-      }).catchError((_) {});
-    }
+    SharedPreferences.getInstance().then((p) {
+      if (!mounted) return;
+      final eta = p.getString(_kEta);
+      setState(() {
+        if (!_provaElenco && p.getString(_kVista) == 'elenco') _mese = false;
+        if (provaEta.isEmpty) _filtro = opzioniEta.any((o) => o.valore == eta) ? eta : null;
+      });
+    }).catchError((_) {});
   }
 
   void _cambia() {
@@ -49,12 +58,22 @@ class _PaginaCalendarioState extends State<PaginaCalendario> {
     SharedPreferences.getInstance().then((p) => p.setString(_kVista, _mese ? 'mese' : 'elenco')).catchError((_) => false);
   }
 
+  Future<void> _filtra() async {
+    final o = await scegliFiltro(context, 'Gare per età', opzioniEta, _filtro);
+    if (o == null || !mounted) return;
+    setState(() => _filtro = o.valore);
+    SharedPreferences.getInstance()
+        .then((p) => o.valore == null ? p.remove(_kEta) : p.setString(_kEta, o.valore!))
+        .catchError((_) => false);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Calendario'),
+        title: Text(titoloConEta('Calendario', _filtro)),
         actions: [
+          BottoneFiltra(attivo: _filtro != null, onPressed: _filtra),
           IconButton(
             tooltip: _mese ? 'Mostra l\'elenco completo' : 'Mostra il calendario del mese',
             onPressed: _cambia,
@@ -63,15 +82,19 @@ class _PaginaCalendarioState extends State<PaginaCalendario> {
           const SizedBox(width: 4),
         ],
       ),
-      body: DatiRemoti<_Programma>(carica: _carica, costruisci: (context, p) => _mese ? _VistaMese(p) : _Elenco(p)),
+      body: DatiRemoti<_Programma>(carica: _carica, costruisci: (context, p) {
+        final voci = p.voci.where((v) => _perEta(v, _filtro)).toList();
+        return _mese ? _VistaMese(p.edizione, voci) : _Elenco(voci, filtrato: _filtro != null);
+      }),
     );
   }
 }
 
 /// Vista a mese: sopra la griglia dei giorni (con i pallini degli appuntamenti), sotto gli appuntamenti del giorno scelto.
 class _VistaMese extends StatefulWidget {
-  final _Programma p;
-  const _VistaMese(this.p);
+  final Edizione edizione;
+  final List<Voce> voci;
+  const _VistaMese(this.edizione, this.voci);
 
   @override
   State<_VistaMese> createState() => _VistaMeseState();
@@ -81,130 +104,46 @@ class _VistaMeseState extends State<_VistaMese> {
   late DateTime _mese; // primo giorno del mese mostrato
   late DateTime _giorno; // giorno scelto
 
-  static DateTime _soloGiorno(DateTime d) => DateTime(d.year, d.month, d.day);
-
-  List<Voce> _di(DateTime g) => widget.p.voci.where((v) => stessoGiorno(v.data, g)).toList();
+  List<Voce> _di(DateTime g) => widget.voci.where((v) => stessoGiorno(v.data, g)).toList();
 
   @override
   void initState() {
     super.initState();
     // si parte da oggi se ci sono appuntamenti nel suo mese, altrimenti dal primo giorno con appuntamenti
-    final oggi = _soloGiorno(oggiApp());
-    final voci = widget.p.voci;
-    final nelMese = voci.any((v) => v.data.year == oggi.year && v.data.month == oggi.month);
-    final inizio = nelMese || voci.isEmpty ? oggi : _soloGiorno(voci.first.data);
-    _giorno = inizio;
-    _mese = DateTime(inizio.year, inizio.month);
+    _giorno = giornoIniziale([for (final v in widget.voci) v.data]);
+    _mese = DateTime(_giorno.year, _giorno.month);
   }
 
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context);
-    final scuro = t.brightness == Brightness.dark;
-    final oggi = _soloGiorno(oggiApp());
-    final giorniMese = DateTime(_mese.year, _mese.month + 1, 0).day;
-    final vuoti = _mese.weekday - 1; // la settimana parte dal lunedi'
-    final settimane = ((vuoti + giorniMese) / 7).ceil();
     final delGiorno = _di(_giorno);
-    const iniziali = ['L', 'M', 'M', 'G', 'V', 'S', 'D'];
-
-    Widget cella(int n) {
-      final g = DateTime(_mese.year, _mese.month, n);
-      final voci = _di(g);
-      final scelto = stessoGiorno(g, _giorno);
-      final festivo = g.weekday >= 6;
-      final eOggi = stessoGiorno(g, oggi);
-      final coloreNumero = scelto
-          ? (scuro ? Colors.black : Colors.white)
-          : eOggi
-              ? t.colorScheme.primary
-              : festivo
-                  ? t.colorScheme.onSurfaceVariant.withValues(alpha: 0.7)
-                  : t.colorScheme.onSurface;
-      return InkResponse(
-        onTap: () => setState(() => _giorno = g),
-        radius: 26,
-        child: Semantics(
-          button: true,
-          selected: scelto,
-          label: '${giornoLungo(g)}${voci.isEmpty ? '' : ', ${voci.length} appuntamenti'}',
-          excludeSemantics: true,
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Container(
-              width: 38,
-              height: 38,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: scelto ? (scuro ? Colors.white : t.colorScheme.primary) : null,
-              ),
-              child: Text('$n',
-                  style: t.textTheme.titleLarge?.copyWith(
-                      color: coloreNumero, fontWeight: scelto || eOggi ? FontWeight.w700 : FontWeight.w500, fontSize: 20)),
-            ),
-            const SizedBox(height: 4),
-            // un segno per tipo di appuntamento: oro gli eventi, blu i giochi (piu' giochi = trattino)
-            SizedBox(
-              height: 6,
-              child: Row(mainAxisSize: MainAxisSize.min, children: [
-                if (voci.any((v) => v.evento)) _segno(t.colorScheme.secondary, 1),
-                if (voci.any((v) => v.evento) && voci.any((v) => !v.evento)) const SizedBox(width: 3),
-                if (voci.any((v) => !v.evento)) _segno(t.colorScheme.primary, voci.where((v) => !v.evento).length),
-              ]),
-            ),
-          ]),
-        ),
-      );
-    }
-
     // solo le settimane con giorni del Palio (o, senza date dell'edizione, con appuntamenti)
-    final ini = widget.p.edizione.inizio, fine = widget.p.edizione.fine;
+    final ini = widget.edizione.inizio, fine = widget.edizione.fine;
     bool utile(DateTime g) => ini != null && fine != null
-        ? !g.isBefore(_soloGiorno(ini)) && !g.isAfter(_soloGiorno(fine))
+        ? !g.isBefore(GrigliaMese.soloGiorno(ini)) && !g.isAfter(GrigliaMese.soloGiorno(fine))
         : _di(g).isNotEmpty;
-    var mostrate = [
-      for (var s = 0; s < settimane; s++)
-        if ([for (var d = 0; d < 7; d++) s * 7 + d - vuoti + 1].any((n) => n >= 1 && n <= giorniMese && utile(DateTime(_mese.year, _mese.month, n)))) s
-    ];
-    if (mostrate.isEmpty) mostrate = [for (var s = 0; s < settimane; s++) s];
 
-    final linea = BorderSide(color: t.colorScheme.outlineVariant.withValues(alpha: 0.6), width: 0.6);
     // il calendario resta fermo: scorrono solo gli appuntamenti del giorno, sotto
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-        child: Text('${mesi[_mese.month - 1][0].toUpperCase()}${mesi[_mese.month - 1].substring(1)} ${_mese.year}',
-            style: t.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w800)),
+      GrigliaMese(
+        mese: _mese,
+        giorno: _giorno,
+        onScegli: (g) => setState(() => _giorno = g),
+        quanti: (g) => _di(g).length,
+        unita: 'appuntamenti',
+        utile: utile,
+        // un segno per tipo di appuntamento: oro gli eventi, blu i giochi (piu' giochi = trattino)
+        segni: (g) {
+          final voci = _di(g);
+          final eventi = voci.any((v) => v.evento), giochi = voci.where((v) => !v.evento).length;
+          return Row(mainAxisSize: MainAxisSize.min, children: [
+            if (eventi) segnoGiorno(t.colorScheme.secondary, 1),
+            if (eventi && giochi > 0) const SizedBox(width: 3),
+            if (giochi > 0) segnoGiorno(t.colorScheme.primary, giochi),
+          ]);
+        },
       ),
-      Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        child: Row(children: [
-          for (var i = 0; i < 7; i++)
-            Expanded(
-              child: Center(
-                child: Text(iniziali[i],
-                    style: t.textTheme.labelMedium?.copyWith(
-                        fontWeight: FontWeight.w600, color: t.colorScheme.onSurfaceVariant.withValues(alpha: i >= 5 ? 0.7 : 1))),
-              ),
-            ),
-        ]),
-      ),
-      const SizedBox(height: 6),
-      for (final s in mostrate)
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-          decoration: BoxDecoration(border: Border(top: linea)),
-          child: Row(children: [
-            for (var d = 0; d < 7; d++)
-              Expanded(
-                child: Builder(builder: (context) {
-                  final n = s * 7 + d - vuoti + 1;
-                  return n < 1 || n > giorniMese ? const SizedBox(height: 48) : cella(n);
-                }),
-              ),
-          ]),
-        ),
-      Container(height: 0.6, color: linea.color),
       Expanded(
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -224,43 +163,28 @@ class _VistaMeseState extends State<_VistaMese> {
       ),
     ]);
   }
-
-  // pallino per un appuntamento, trattino per piu' appuntamenti dello stesso tipo
-  Widget _segno(Color c, int quanti) => Container(
-        width: quanti > 1 ? 20 : 6,
-        height: 6,
-        decoration: BoxDecoration(color: c, borderRadius: BorderRadius.circular(3)),
-      );
 }
 
 class _Elenco extends StatelessWidget {
-  final _Programma p;
-  const _Elenco(this.p);
+  final List<Voce> voci;
+  final bool filtrato;
+  const _Elenco(this.voci, {required this.filtrato});
 
   @override
   Widget build(BuildContext context) {
     final oggi = oggiApp();
-    final righe = <Widget>[
-      Card(
-        margin: const EdgeInsets.fromLTRB(16, 12, 16, 6),
-        child: ListTile(
-          leading: const Icon(Icons.sports_volleyball),
-          title: const Text('Partite di pallavolo'),
-          subtitle: const Text('Tutte le partite, anche solo quelle del tuo rione'),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: () => apriPallavolo(context),
-        ),
-      ),
-    ];
-    if (p.voci.isEmpty) {
-      righe.add(const Messaggio(
-        icona: Icons.event_busy,
-        titolo: 'Programma non ancora pubblicato',
-        testo: 'Le date e gli orari delle gare compariranno qui appena saranno decisi.',
-      ));
+    final righe = <Widget>[];
+    if (voci.isEmpty) {
+      righe.add(filtrato
+          ? const Messaggio(icona: Icons.event_busy, titolo: 'Nessuna gara per questa età')
+          : const Messaggio(
+              icona: Icons.event_busy,
+              titolo: 'Programma non ancora pubblicato',
+              testo: 'Le date e gli orari delle gare compariranno qui appena saranno decisi.',
+            ));
     }
     DateTime? giorno;
-    for (final v in p.voci) {
+    for (final v in voci) {
       if (giorno == null || !stessoGiorno(giorno, v.data)) {
         giorno = v.data;
         righe.add(Sezione(giornoLungo(v.data),
@@ -272,9 +196,6 @@ class _Elenco extends StatelessWidget {
     return ListView(physics: const AlwaysScrollableScrollPhysics(), children: righe);
   }
 }
-
-void apriPallavolo(BuildContext context) =>
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PaginaPallavolo()));
 
 /// Una voce del programma: un gioco apre la sua pagina, la pallavolo il calendario delle partite.
 class VoceTile extends StatelessWidget {

@@ -5,7 +5,7 @@ import '../models.dart';
 import '../widgets/comuni.dart';
 import '../widgets/icone_tratto.dart';
 import '../widgets/testo_ricco.dart';
-import 'calendario.dart';
+import 'home.dart';
 
 // --dart-define=PROVA_TAB_GIOCO=n apre la scheda n del gioco (schermate di prova)
 const _provaTab = int.fromEnvironment('PROVA_TAB_GIOCO');

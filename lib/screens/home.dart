@@ -8,11 +8,22 @@ import 'giochi.dart';
 import 'mappa.dart';
 import 'oggi.dart';
 import 'pallavolo.dart';
-import 'social.dart';
 
 // solo per le schermate di prova nel simulatore: --dart-define=PROVA_PALLAVOLO=true / PROVA_MAPPA_GOOGLE=true
 const _provaPallavolo = bool.fromEnvironment('PROVA_PALLAVOLO');
 const _provaMappaGoogle = bool.fromEnvironment('PROVA_MAPPA_GOOGLE');
+
+const _schedaPallavolo = 4;
+
+// scheda scelta nel menu in basso: la cambiano anche le altre pagine (es. «Calendario delle partite» del gioco)
+// --dart-define=PROVA_SCHEDA=n apre direttamente la scheda n (schermate di prova)
+final schedaHome = ValueNotifier<int>(_provaPallavolo ? _schedaPallavolo : const int.fromEnvironment('PROVA_SCHEDA'));
+
+/// Porta alla scheda Pallavolo, chiudendo le pagine aperte sopra il menu.
+void apriPallavolo(BuildContext context) {
+  Navigator.of(context).popUntil((r) => r.isFirst);
+  schedaHome.value = _schedaPallavolo;
+}
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -22,10 +33,7 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
-  // --dart-define=PROVA_SCHEDA=n apre direttamente la scheda n (schermate di prova)
-  int _scheda = const int.fromEnvironment('PROVA_SCHEDA');
-
-  static const _pagine = [PaginaOggi(), PaginaCalendario(), PaginaClassifica(), PaginaGiochi(), PaginaSocial()];
+  static const _pagine = [PaginaOggi(), PaginaCalendario(), PaginaClassifica(), PaginaGiochi(), PaginaPallavolo()];
 
   // a ogni ritorno nell'app si riscarica il piano dei promemoria
   late final AppLifecycleListener _ciclo;
@@ -44,26 +52,25 @@ class _HomeState extends State<Home> {
       WidgetsBinding.instance.addPostFrameCallback(
           (_) => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PaginaMappa())));
     }
-    if (_provaPallavolo) {
-      WidgetsBinding.instance.addPostFrameCallback(
-          (_) => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PaginaPallavolo())));
-    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: IndexedStack(index: _scheda, children: _pagine),
-      bottomNavigationBar: MenuInBasso(
-        scelta: _scheda,
-        onScegli: (i) => setState(() => _scheda = i),
-        voci: const [
-          VoceMenu('home', 'Home'),
-          VoceMenu('calendario_menu', 'Calendario'),
-          VoceMenu('classifica_menu', 'Classifica'),
-          VoceMenu('giochi_menu', 'Giochi'),
-          VoceMenu('social_menu', 'Social'),
-        ],
+    return ValueListenableBuilder<int>(
+      valueListenable: schedaHome,
+      builder: (context, scheda, _) => Scaffold(
+        body: IndexedStack(index: scheda, children: _pagine),
+        bottomNavigationBar: MenuInBasso(
+          scelta: scheda,
+          onScegli: (i) => schedaHome.value = i,
+          voci: const [
+            VoceMenu('home', 'Home'),
+            VoceMenu('calendario_menu', 'Calendario'),
+            VoceMenu('classifica_menu', 'Classifica'),
+            VoceMenu('giochi_menu', 'Giochi'),
+            VoceMenu('gioco_pallavolo', 'Pallavolo'),
+          ],
+        ),
       ),
     );
   }

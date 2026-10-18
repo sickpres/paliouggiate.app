@@ -4,7 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../api.dart';
 import '../models.dart';
 
-/// Logo di uno sponsor (nella scheda Social): tocco = sito dello sponsor.
+/// Logo di uno sponsor (in fondo alla Home): tocco = sito dello sponsor.
 class LogoSponsor extends StatelessWidget {
   final Sponsor s;
   const LogoSponsor(this.s, {super.key});

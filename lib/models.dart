@@ -55,6 +55,8 @@ class Voce {
   final String chi;
   final String luogo;
   final String note;
+  // categoria d'eta' del gioco dal portale: 'tutti' | 'adulti' (adulti e ragazzi) | 'bambini' | 'anziani'; vuota per gli eventi
+  final String categoria;
   Voce({
     required this.genere,
     this.giocoId,
@@ -65,6 +67,7 @@ class Voce {
     required this.chi,
     required this.luogo,
     required this.note,
+    this.categoria = '',
   });
 
   bool get evento => genere == 'evento';
@@ -79,6 +82,7 @@ class Voce {
         chi: _s(j['chi']),
         luogo: _s(j['luogo']),
         note: _s(j['note']),
+        categoria: _s(j['categoria']),
       );
 }
 
@@ -170,6 +174,7 @@ class Gioco {
   final String luogo;
   final List<PostoGioco> classifica;
   final List<GruppoRisultati> dettaglio;
+  final String categoria; // categoria d'eta' dal portale, come in Voce
   Gioco({
     this.parziale = false,
     this.mancanti = 0,
@@ -184,6 +189,7 @@ class Gioco {
     required this.luogo,
     required this.classifica,
     required this.dettaglio,
+    this.categoria = '',
   });
 
   factory Gioco.fromJson(Map<String, dynamic> j) => Gioco(
@@ -206,6 +212,7 @@ class Gioco {
           for (final d in (j['dettaglio'] as List? ?? const []))
             GruppoRisultati(_s(d['gruppo']), [for (final r in (d['righe'] as List? ?? const [])) _s(r)])
         ],
+        categoria: _s(j['categoria']),
       );
 }
 

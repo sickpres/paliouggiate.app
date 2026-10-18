@@ -31,6 +31,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/logo.png
+    - assets/header.webp
 
 # icona dell'app: `dart run flutter_launcher_icons`
 flutter_launcher_icons:
