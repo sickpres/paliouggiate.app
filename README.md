@@ -42,16 +42,24 @@ iOS 16. Se in `ios/` ricompaiono `Podfile` o include di `Pods` nei `.xcconfig`, 
 
 ## Build dell'.ipa (Mac remoto)
 
-Sul Mac servono Xcode con la piattaforma iOS e Flutter in `~/flutter`
-(`git clone --depth 1 -b stable https://github.com/flutter/flutter.git`, nessun
-sudo). CocoaPods non serve: i plugin si risolvono con Swift Package Manager
-(`flutter config --enable-swift-package-manager`).
+Il Mac (Scaleway, utente `m1`) serve solo a compilare: i sorgenti stanno sul PC e nel repository, sul Mac non c'è
+niente da salvare e si può eliminare e ricreare quando serve. La chiave SSH è `~/.ssh/macincloud`, registrata nel
+progetto Scaleway, che la installa da sola sulle macchine nuove.
 
-```bash
-bash scripts/build-ipa.sh
-```
+1. Preparare il Mac nuovo, una volta (Flutter 3.47.7 in `~/flutter`, piattaforma iOS, Swift Package Manager; niente
+   sudo, Homebrew o CocoaPods; la piattaforma iOS sono ~8,5 GB da scaricare):
 
-produce `dist/PalioUggiate.ipa`, non firmato, da installare con Sideloadly.
+   ```bash
+   ssh -i ~/.ssh/macincloud m1@<indirizzo> 'bash -s' < scripts/bootstrap-mac.sh
+   ```
+
+2. Ogni volta, dal PC: invia i sorgenti, compila (`scripts/build-ipa.sh` sul Mac) e riporta l'.ipa in `dist/`:
+
+   ```bash
+   bash scripts/ipa-remota.sh m1@<indirizzo>
+   ```
+
+`dist/PalioUggiate.ipa` non è firmato: si installa con Sideloadly.
 
 Per fotografare una scheda nel simulatore senza toccarlo:
 `flutter build ios --simulator --debug --dart-define=PROVA_SCHEDA=n` (0–4). Altri interruttori di prova:
