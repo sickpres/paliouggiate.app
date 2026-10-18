@@ -26,8 +26,9 @@ const _kEta = 'eta_calendario';
 // solo per le schermate di prova nel simulatore: --dart-define=PROVA_ELENCO=true
 const _provaElenco = bool.fromEnvironment('PROVA_ELENCO');
 
-// filtro per eta': gli eventi restano sempre, perche' valgono per ogni eta'
-bool _perEta(Voce v, String? eta) => v.evento || perEta(v.categoria, eta);
+// filtro per eta': con un'eta' scelta restano solo i giochi di quella categoria; i giochi «per tutti»
+// e gli eventi si vedono solo con «Tutti» (nessun filtro)
+bool _perEta(Voce v, String? eta) => eta == null || (!v.evento && perEta(v.categoria, eta));
 
 class PaginaCalendario extends StatefulWidget {
   const PaginaCalendario({super.key});

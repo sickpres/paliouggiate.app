@@ -184,7 +184,7 @@ class _PaginaPallavoloState extends State<PaginaPallavolo> {
         giorno = g;
         righe.add(Sezione(g, coda: p.data != null && stessoGiorno(p.data!, oggiApp()) ? const Chip(label: Text('Oggi'), visualDensity: VisualDensity.compact) : null));
       }
-      righe.add(_PartitaTile(p, rioni, sel, d.cal.arbitri));
+      righe.add(_PartitaTile(p, rioni, sel));
     }
     righe.add(const SizedBox(height: 24));
     return ListView(physics: const AlwaysScrollableScrollPhysics(), children: righe);
@@ -263,7 +263,7 @@ class _VistaMeseState extends State<_VistaMese> {
                     style: t.textTheme.bodyMedium?.copyWith(color: t.colorScheme.onSurfaceVariant)),
               )
             else
-              for (final p in delGiorno) _PartitaTile(p, widget.rioni, widget.sel, widget.d.cal.arbitri),
+              for (final p in delGiorno) _PartitaTile(p, widget.rioni, widget.sel),
             if (senzaData)
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
@@ -277,59 +277,72 @@ class _VistaMeseState extends State<_VistaMese> {
   }
 }
 
+/// Una partita: a sinistra l'orario (e il risultato), a destra i due rioni sullo sfondo «VS» (assets/vs.webp):
+/// il primo sul lato bianco, il secondo sul lato blu, ciascuno con lo stemma grande e il nome sotto.
 class _PartitaTile extends StatelessWidget {
   final Partita p;
   final Map<int, Rione> rioni;
   final int? sel;
-  final bool arbitri;
-  const _PartitaTile(this.p, this.rioni, this.sel, this.arbitri);
+  const _PartitaTile(this.p, this.rioni, this.sel);
 
-  Widget _squadra(BuildContext context, int id) {
+  static const _blu = Color(0xFF112658); // il blu dello sfondo «VS»
+
+  Widget _squadra(BuildContext context, int id, Color colore) {
     final r = rioni[id];
-    final mio = id == sel;
-    return Row(children: [
-      SegnoRione(rione: r, colore: r?.colore ?? '', lato: 26),
-      const SizedBox(width: 8),
-      Expanded(
-        child: Text(r?.nome ?? '?',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: mio ? FontWeight.w800 : FontWeight.w400)),
-      ),
+    return Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+      SegnoRione(rione: r, colore: r?.colore ?? '', lato: 64),
+      const SizedBox(height: 8),
+      Text(r?.nome ?? '?',
+          textAlign: TextAlign.center,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              color: colore, height: 1.15, fontWeight: id == sel ? FontWeight.w800 : FontWeight.w600)),
     ]);
   }
 
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context);
-    final arbitro = p.arbitro == null ? null : rioni[p.arbitro];
+    final mq = MediaQuery.of(context);
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          SizedBox(
-            width: 60,
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(p.ora.isEmpty ? '--:--' : p.ora,
-                  style: t.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700, fontFeatures: const [FontFeature.tabularFigures()])),
-              if (p.campo != null) Text('Campo ${p.campo}', style: t.textTheme.bodySmall),
-            ]),
+      clipBehavior: Clip.antiAlias,
+      child: IntrinsicHeight(
+        child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 10, 4, 10),
+            child: SizedBox(
+              width: 56,
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(p.ora.isEmpty ? '--:--' : p.ora,
+                    style: t.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700, fontFeatures: const [FontFeature.tabularFigures()])),
+                if (p.campo != null) Text('Campo ${p.campo}', style: t.textTheme.bodySmall),
+                if (p.risultato.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(p.risultato, style: t.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+                  ),
+              ]),
+            ),
           ),
           Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              _squadra(context, p.rioneA),
-              const SizedBox(height: 6),
-              _squadra(context, p.rioneB),
-              if (arbitri && arbitro != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 6),
-                  child: Text('Arbitra ${arbitro.nome}', style: t.textTheme.bodySmall?.copyWith(color: t.colorScheme.onSurfaceVariant)),
+            child: Container(
+              constraints: const BoxConstraints(minHeight: 132),
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
+              decoration: BoxDecoration(
+                image: DecorationImage(
+                  image: ResizeImage(const AssetImage('assets/vs.webp'), width: (mq.size.width * mq.devicePixelRatio).round()),
+                  fit: BoxFit.cover,
                 ),
-            ]),
-          ),
-          if (p.risultato.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(left: 8, top: 14),
-              child: Text(p.risultato, style: t.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
+              ),
+              child: Row(children: [
+                Expanded(child: _squadra(context, p.rioneA, _blu)),
+                // spazio per la scritta «VS» al centro dello sfondo
+                const SizedBox(width: 44),
+                Expanded(child: _squadra(context, p.rioneB, Colors.white)),
+              ]),
             ),
+          ),
         ]),
       ),
     );

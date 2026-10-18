@@ -162,33 +162,24 @@ class _Canale {
   const _Canale(this.nome, this.dettaglio, this.url, this.icona);
 }
 
+/// Logo ufficiale del social (assets/facebook.png, assets/instagram.png), con gli angoli arrotondati.
 class _Marchio extends StatelessWidget {
-  final IconData icona;
-  final Gradient sfondo;
-  const _Marchio(this.icona, this.sfondo);
+  final String immagine;
+  const _Marchio(this.immagine);
 
   @override
-  Widget build(BuildContext context) => Container(
-        width: 44,
-        height: 44,
-        decoration: BoxDecoration(gradient: sfondo, borderRadius: BorderRadius.circular(12)),
-        child: Icon(icona, color: Colors.white, size: 26),
+  Widget build(BuildContext context) => ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Image.asset(immagine, width: 44, height: 44, fit: BoxFit.cover),
       );
 }
-
-const _blu = LinearGradient(colors: [Color(0xFF1877F2), Color(0xFF1877F2)]);
-const _instagram = LinearGradient(
-  begin: Alignment.bottomLeft,
-  end: Alignment.topRight,
-  colors: [Color(0xFFFEDA75), Color(0xFFFA7E1E), Color(0xFFD62976), Color(0xFF962FBF), Color(0xFF4F5BD5)],
-);
 
 // pagine social del Palio (i nomi sono i titoli pubblici delle pagine)
 const _canali = [
   _Canale('Palio dei Rioni di Uggiate con Ronago', 'Facebook', 'https://www.facebook.com/profile.php?id=61589423978361&locale=it_IT',
-      _Marchio(Icons.facebook, _blu)),
+      _Marchio('assets/facebook.png')),
   _Canale('@palio.uggiateconronago', 'Instagram', 'https://www.instagram.com/palio.uggiateconronago/',
-      _Marchio(Icons.photo_camera_outlined, _instagram)),
+      _Marchio('assets/instagram.png')),
 ];
 
 /// In fondo alla Home: gli sponsor, se il portale ne pubblica, e le pagine social del Palio.

@@ -163,8 +163,9 @@ String titoloConEta(String titolo, String? eta) {
   return o.isEmpty ? titolo : '$titolo • ${o.first.etichetta}';
 }
 
-/// Un gioco della [categoria] va bene per l'[eta] scelta? I giochi «per tutti» (e senza categoria) valgono per ogni eta'.
-bool perEta(String categoria, String? eta) => eta == null || categoria.isEmpty || categoria == 'tutti' || categoria == eta;
+/// Un gioco della [categoria] va bene per l'[eta] scelta? Con un'eta' scelta solo i giochi di quella categoria:
+/// quelli «per tutti» (e senza categoria) si vedono solo con «Tutti», cioe' senza filtro.
+bool perEta(String categoria, String? eta) => eta == null || categoria == eta;
 
 /// Popup con l'elenco delle scelte; restituisce la voce toccata (null se si chiude senza scegliere).
 Future<OpzioneFiltro<T>?> scegliFiltro<T>(BuildContext context, String titolo, List<OpzioneFiltro<T>> opzioni, T? attuale) {
