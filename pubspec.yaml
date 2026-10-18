@@ -35,6 +35,7 @@ flutter:
     - assets/facebook.png
     - assets/instagram.png
     - assets/vs.webp
+    - assets/vs_scuro.webp
 
 # icona dell'app: `dart run flutter_launcher_icons`
 flutter_launcher_icons:

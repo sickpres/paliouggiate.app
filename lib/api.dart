@@ -78,10 +78,14 @@ class Api {
 
   Future<ConfigMappa> mappa() async => ConfigMappa.fromJson(_mappa(await _get('mappa')));
 
+  Future<List<Documento>> documenti() async => _lista(await _get('documenti')).map(Documento.fromJson).toList();
+
   Future<List<Sponsor>> sponsor() async => _lista(await _get('sponsor')).map(Sponsor.fromJson).toList();
 
   String logoRione(Rione r) => '${url('rioni/${r.id}/logo')}?v=${r.logoVersione}';
   String fotoGioco(SchedaGioco g) => '${url('giochi/${g.id}/foto')}?v=${g.fotoVersione}';
   String simboloRione(Rione r) => '${url('rioni/${r.id}/simbolo')}?v=${r.simboloVersione}';
   String logoSponsor(Sponsor s) => url('sponsor/${s.id}/logo');
+  // scarica=1: il portale manda il file come allegato, cosi' il telefono lo salva
+  String fileDocumento(Documento d) => '${url('documenti/${d.id}/file')}?scarica=1';
 }

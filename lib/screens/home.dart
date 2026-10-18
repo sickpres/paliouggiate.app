@@ -4,6 +4,7 @@ import '../promemoria.dart';
 import '../widgets/icone_tratto.dart';
 import 'calendario.dart';
 import 'classifica.dart';
+import 'documenti.dart';
 import 'giochi.dart';
 import 'mappa.dart';
 import 'oggi.dart';
@@ -12,6 +13,8 @@ import 'pallavolo.dart';
 // solo per le schermate di prova nel simulatore: --dart-define=PROVA_PALLAVOLO=true / PROVA_MAPPA_GOOGLE=true
 const _provaPallavolo = bool.fromEnvironment('PROVA_PALLAVOLO');
 const _provaMappaGoogle = bool.fromEnvironment('PROVA_MAPPA_GOOGLE');
+// --dart-define=PROVA_DOCUMENTI=true apre «Regolamento e moduli»
+const _provaDocumenti = bool.fromEnvironment('PROVA_DOCUMENTI');
 
 const _schedaPallavolo = 4;
 
@@ -51,6 +54,10 @@ class _HomeState extends State<Home> {
     if (_provaMappaGoogle) {
       WidgetsBinding.instance.addPostFrameCallback(
           (_) => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PaginaMappa())));
+    }
+    if (_provaDocumenti) {
+      WidgetsBinding.instance.addPostFrameCallback(
+          (_) => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PaginaDocumenti())));
     }
   }
 

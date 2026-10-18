@@ -277,8 +277,9 @@ class _VistaMeseState extends State<_VistaMese> {
   }
 }
 
-/// Una partita: a sinistra l'orario (e il risultato), a destra i due rioni sullo sfondo «VS» (assets/vs.webp):
-/// il primo sul lato bianco, il secondo sul lato blu, ciascuno con lo stemma grande e il nome sotto.
+/// Una partita: a sinistra l'orario (e il risultato), a destra i due rioni sullo sfondo «VS», ciascuno con lo stemma
+/// grande e il nome sotto. Tema chiaro: bianco e blu (assets/vs.webp); tema scuro: grigio scuro e arancione
+/// (assets/vs_scuro.webp), con la scheda dello stesso grigio.
 class _PartitaTile extends StatelessWidget {
   final Partita p;
   final Map<int, Rione> rioni;
@@ -286,6 +287,8 @@ class _PartitaTile extends StatelessWidget {
   const _PartitaTile(this.p, this.rioni, this.sel);
 
   static const _blu = Color(0xFF112658); // il blu dello sfondo «VS»
+  static const _grigio = Color(0xFF2A2A2E); // il grigio dello sfondo «VS» scuro
+  static const _suArancione = Color(0xFF1C1C1E); // nome sul lato arancione
 
   Widget _squadra(BuildContext context, int id, Color colore) {
     final r = rioni[id];
@@ -305,7 +308,10 @@ class _PartitaTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = Theme.of(context);
     final mq = MediaQuery.of(context);
+    final scuro = t.brightness == Brightness.dark;
     return Card(
+      color: scuro ? _grigio : null,
+      surfaceTintColor: Colors.transparent, // nessuna schiaritura: il grigio combacia con lo sfondo «VS»
       clipBehavior: Clip.antiAlias,
       child: IntrinsicHeight(
         child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
@@ -331,15 +337,15 @@ class _PartitaTile extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
               decoration: BoxDecoration(
                 image: DecorationImage(
-                  image: ResizeImage(const AssetImage('assets/vs.webp'), width: (mq.size.width * mq.devicePixelRatio).round()),
+                  image: ResizeImage(AssetImage(scuro ? 'assets/vs_scuro.webp' : 'assets/vs.webp'), width: (mq.size.width * mq.devicePixelRatio).round()),
                   fit: BoxFit.cover,
                 ),
               ),
               child: Row(children: [
-                Expanded(child: _squadra(context, p.rioneA, _blu)),
+                Expanded(child: _squadra(context, p.rioneA, scuro ? Colors.white : _blu)),
                 // spazio per la scritta «VS» al centro dello sfondo
                 const SizedBox(width: 44),
-                Expanded(child: _squadra(context, p.rioneB, Colors.white)),
+                Expanded(child: _squadra(context, p.rioneB, scuro ? _suArancione : Colors.white)),
               ]),
             ),
           ),

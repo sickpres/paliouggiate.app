@@ -9,6 +9,7 @@ import '../widgets/icone_tratto.dart';
 import '../widgets/mappa.dart';
 import 'mappa.dart';
 import 'calendario.dart';
+import 'documenti.dart';
 import 'sponsor.dart';
 
 // solo per le schermate di prova nel simulatore: --dart-define=PROVA_TELECRONACA="testo"
@@ -137,6 +138,22 @@ class _Contenuto extends StatelessWidget {
           Sezione('Prossimo appuntamento · ${giornoLungo(prossimo.first.data)}'),
           for (final v in prossimo) VoceTile(v),
         ],
+        // regolamento e moduli del portale, da scaricare
+        Card(
+          margin: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+          clipBehavior: Clip.antiAlias,
+          child: ListTile(
+            contentPadding: const EdgeInsets.fromLTRB(16, 6, 8, 6),
+            leading: CircleAvatar(
+              backgroundColor: t.colorScheme.primary,
+              child: Icon(Icons.description_outlined, color: t.colorScheme.onPrimary),
+            ),
+            title: Text('Regolamento e moduli', style: t.textTheme.titleMedium),
+            subtitle: const Text('Il regolamento del Palio e i moduli da scaricare'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PaginaDocumenti())),
+          ),
+        ),
         Sezione(
           'I rioni',
           // la mappa vera (Google Maps) con i confini dei rioni, a tutta pagina

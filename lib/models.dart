@@ -216,6 +216,30 @@ class Gioco {
       );
 }
 
+/// Un documento del portale (GET /api/documenti): regolamento, moduli, ... nell'ordine scelto nel pannello.
+class Documento {
+  final int id;
+  final String titolo;
+  final String nomeFile;
+  final int dimensione; // byte
+  final DateTime? caricato;
+  Documento({required this.id, required this.titolo, required this.nomeFile, required this.dimensione, this.caricato});
+
+  /// estensione del file in maiuscolo (PDF, DOCX, ...), vuota se il nome non ne ha
+  String get formato {
+    final i = nomeFile.lastIndexOf('.');
+    return i < 0 ? '' : nomeFile.substring(i + 1).toUpperCase();
+  }
+
+  factory Documento.fromJson(Map<String, dynamic> j) => Documento(
+        id: _i(j['id']),
+        titolo: _s(j['titolo']),
+        nomeFile: _s(j['nome_file']),
+        dimensione: _i(j['dimensione']),
+        caricato: DateTime.tryParse(_s(j['caricato']))?.toLocal(),
+      );
+}
+
 class Sponsor {
   final int id;
   final String nome;
