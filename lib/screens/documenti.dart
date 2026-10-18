@@ -5,7 +5,11 @@ import '../api.dart';
 import '../models.dart';
 import '../widgets/comuni.dart';
 
-/// Pagina «Regolamento e moduli»: i documenti del portale nell'ordine scelto nel pannello; un tocco li scarica.
+/// Pagina «Regolamento e moduli»: i documenti del portale nell'ordine scelto nel pannello. Un tocco apre il documento
+/// dentro l'app (il visore di Safari, da cui si puo' anche salvare o condividere); il bottone a destra lo scarica.
+// solo per le schermate di prova nel simulatore: --dart-define=PROVA_APRI_DOCUMENTO=true apre il primo documento
+const _provaApri = bool.fromEnvironment('PROVA_APRI_DOCUMENTO');
+
 class PaginaDocumenti extends StatelessWidget {
   const PaginaDocumenti({super.key});
 
@@ -15,7 +19,11 @@ class PaginaDocumenti extends StatelessWidget {
       appBar: AppBar(title: const Text('Regolamento e moduli')),
       body: DatiRemoti<List<Documento>>(
         carica: Api.instance.documenti,
-        costruisci: (context, lista) => ListView(
+        costruisci: (context, lista) {
+          if (_provaApri && lista.isNotEmpty) {
+            WidgetsBinding.instance.addPostFrameCallback((_) => _RigaDocumento(lista.first)._apri(context));
+          }
+          return ListView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.only(top: 10, bottom: 24),
           children: [
@@ -27,7 +35,8 @@ class PaginaDocumenti extends StatelessWidget {
               ),
             for (final d in lista) _RigaDocumento(d),
           ],
-        ),
+        );
+        },
       ),
     );
   }
@@ -41,10 +50,18 @@ class _RigaDocumento extends StatelessWidget {
   final Documento d;
   const _RigaDocumento(this.d);
 
-  // il file si apre nel browser del telefono, che lo scarica (il portale lo manda come allegato)
+  // dentro l'app: SFSafariViewController su iOS, che mostra PDF e documenti Office
+  Future<void> _apri(BuildContext context) async {
+    final avvisi = ScaffoldMessenger.of(context);
+    if (!await launchUrl(Uri.parse(Api.instance.fileDocumento(d)), mode: LaunchMode.inAppBrowserView)) {
+      avvisi.showSnackBar(const SnackBar(content: Text('Impossibile aprire il documento')));
+    }
+  }
+
+  // nel browser del telefono, che lo salva (il portale lo manda come allegato)
   Future<void> _scarica(BuildContext context) async {
     final avvisi = ScaffoldMessenger.of(context);
-    if (!await launchUrl(Uri.parse(Api.instance.fileDocumento(d)), mode: LaunchMode.externalApplication)) {
+    if (!await launchUrl(Uri.parse(Api.instance.fileDocumento(d, scarica: true)), mode: LaunchMode.externalApplication)) {
       avvisi.showSnackBar(const SnackBar(content: Text('Impossibile scaricare il documento')));
     }
   }
@@ -61,7 +78,7 @@ class _RigaDocumento extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: ListTile(
         contentPadding: const EdgeInsets.fromLTRB(16, 6, 8, 6),
-        onTap: () => _scarica(context),
+        onTap: () => _apri(context),
         leading: CircleAvatar(
           backgroundColor: t.colorScheme.secondaryContainer,
           child: Icon(d.formato == 'PDF' ? Icons.picture_as_pdf_outlined : Icons.description_outlined,

@@ -86,6 +86,6 @@ class Api {
   String fotoGioco(SchedaGioco g) => '${url('giochi/${g.id}/foto')}?v=${g.fotoVersione}';
   String simboloRione(Rione r) => '${url('rioni/${r.id}/simbolo')}?v=${r.simboloVersione}';
   String logoSponsor(Sponsor s) => url('sponsor/${s.id}/logo');
-  // scarica=1: il portale manda il file come allegato, cosi' il telefono lo salva
-  String fileDocumento(Documento d) => '${url('documenti/${d.id}/file')}?scarica=1';
+  // scarica=true: il portale manda il file come allegato, cosi' il telefono lo salva invece di mostrarlo
+  String fileDocumento(Documento d, {bool scarica = false}) => '${url('documenti/${d.id}/file')}${scarica ? '?scarica=1' : ''}';
 }

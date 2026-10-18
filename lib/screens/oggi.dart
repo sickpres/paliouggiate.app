@@ -99,9 +99,12 @@ class _Contenuto extends StatelessWidget {
 
     final scorri = _provaFondo ? ScrollController() : null;
     if (scorri != null) {
-      Future.delayed(const Duration(seconds: 3), () {
-        if (scorri.hasClients) scorri.jumpTo(scorri.position.maxScrollExtent);
-      });
+      // di nuovo dopo qualche secondo: mappa, sponsor e social arrivano dopo e allungano la pagina
+      for (final s in const [3, 8]) {
+        Future.delayed(Duration(seconds: s), () {
+          if (scorri.hasClients) scorri.jumpTo(scorri.position.maxScrollExtent);
+        });
+      }
     }
     return ListView(
       controller: scorri,
@@ -138,22 +141,6 @@ class _Contenuto extends StatelessWidget {
           Sezione('Prossimo appuntamento · ${giornoLungo(prossimo.first.data)}'),
           for (final v in prossimo) VoceTile(v),
         ],
-        // regolamento e moduli del portale, da scaricare
-        Card(
-          margin: const EdgeInsets.fromLTRB(16, 20, 16, 0),
-          clipBehavior: Clip.antiAlias,
-          child: ListTile(
-            contentPadding: const EdgeInsets.fromLTRB(16, 6, 8, 6),
-            leading: CircleAvatar(
-              backgroundColor: t.colorScheme.primary,
-              child: Icon(Icons.description_outlined, color: t.colorScheme.onPrimary),
-            ),
-            title: Text('Regolamento e moduli', style: t.textTheme.titleMedium),
-            subtitle: const Text('Il regolamento del Palio e i moduli da scaricare'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PaginaDocumenti())),
-          ),
-        ),
         Sezione(
           'I rioni',
           // la mappa vera (Google Maps) con i confini dei rioni, a tutta pagina
@@ -166,7 +153,40 @@ class _Contenuto extends StatelessWidget {
         ),
         const MappaRioni(),
         const _SponsorESocial(),
+        const _RegolamentoEModuli(),
       ],
+    );
+  }
+}
+
+/// In fondo alla Home, dopo i social: riquadro oro (il colore del logo) che apre «Regolamento e moduli».
+class _RegolamentoEModuli extends StatelessWidget {
+  const _RegolamentoEModuli();
+
+  static const _oro = Color(0xFFFEAB06);
+  static const _blu = Color(0xFF062246);
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context);
+    return Card(
+      margin: const EdgeInsets.fromLTRB(16, 24, 16, 0),
+      color: _oro,
+      surfaceTintColor: Colors.transparent,
+      clipBehavior: Clip.antiAlias,
+      child: ListTile(
+        contentPadding: const EdgeInsets.fromLTRB(16, 10, 12, 10),
+        leading: const CircleAvatar(
+          radius: 24,
+          backgroundColor: _blu,
+          child: Icon(Icons.description_outlined, color: _oro, size: 26),
+        ),
+        title: Text('Regolamento e moduli', style: t.textTheme.titleMedium?.copyWith(color: _blu, fontWeight: FontWeight.w800)),
+        subtitle: Text('Il regolamento del Palio e i moduli da compilare',
+            style: t.textTheme.bodyMedium?.copyWith(color: _blu.withValues(alpha: 0.85))),
+        trailing: const Icon(Icons.chevron_right, color: _blu),
+        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PaginaDocumenti())),
+      ),
     );
   }
 }
