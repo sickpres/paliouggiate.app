@@ -12,8 +12,8 @@ import 'widgets/comuni.dart';
 const chiaveRione = 'rione_pallavolo';
 
 /// Promemoria delle gare: notifiche locali programmate sul telefono a partire dal piano del portale
-/// (GET /api/notifiche, al massimo una al giorno). Senza account Apple a pagamento non ci sono push dal server:
-/// il piano si riscarica e si riprograma a ogni apertura dell'app e quando cambia il rione scelto.
+/// (GET /api/notifiche, al massimo una al giorno), su iPhone e su Android. Non ci sono push dal server: il piano
+/// si riscarica e si riprograma a ogni apertura dell'app e quando cambia il rione scelto.
 class Promemoria {
   Promemoria._();
 
@@ -26,6 +26,7 @@ class Promemoria {
     tzdata.initializeTimeZones();
     // il permesso si chiede solo quando c'e' davvero qualcosa da programmare
     await _plugin.initialize(const InitializationSettings(
+      android: AndroidInitializationSettings('ic_notifica'),
       iOS: DarwinInitializationSettings(
         requestAlertPermission: false,
         requestBadgePermission: false,
@@ -47,7 +48,10 @@ class Promemoria {
         return;
       }
       final ios = _plugin.resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>();
-      final permesso = await ios?.requestPermissions(alert: true, sound: true) ?? false;
+      final android = _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+      final permesso = ios != null
+          ? await ios.requestPermissions(alert: true, sound: true) ?? false
+          : await android?.requestNotificationsPermission() ?? false;
       if (!permesso) return;
 
       int? rione;
@@ -66,7 +70,14 @@ class Promemoria {
           n.titolo,
           testoPer(n, rione, rioni),
           tz.TZDateTime.from(n.quando.toUtc(), tz.UTC),
-          const NotificationDetails(iOS: DarwinNotificationDetails(presentAlert: true, presentSound: true)),
+          const NotificationDetails(
+            android: AndroidNotificationDetails('promemoria', 'Promemoria delle gare',
+                channelDescription: 'Un avviso prima delle gare del Palio',
+                importance: Importance.high,
+                priority: Priority.high,
+                icon: 'ic_notifica'),
+            iOS: DarwinNotificationDetails(presentAlert: true, presentSound: true),
+          ),
           androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
         );
       }

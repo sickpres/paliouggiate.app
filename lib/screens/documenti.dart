@@ -34,6 +34,8 @@ class PaginaDocumenti extends StatelessWidget {
                 testo: 'Regolamento e moduli compariranno qui appena saranno pubblicati.',
               ),
             for (final d in lista) _RigaDocumento(d),
+            // Google Play chiede il link all'informativa sulla privacy anche dentro l'app
+            const _Privacy(),
           ],
         );
         },
@@ -82,6 +84,29 @@ class _RigaDocumento extends StatelessWidget {
           tooltip: 'Scarica',
           icon: const Icon(Icons.download),
           onPressed: () => _apri(context),
+        ),
+      ),
+    );
+  }
+}
+
+const _urlPrivacy = 'https://palio.comune.uggiateconronago.co.it/privacy.html';
+
+/// In fondo ai documenti: l'informativa sulla privacy dell'app, aperta nel browser dentro l'app.
+class _Privacy extends StatelessWidget {
+  const _Privacy();
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Center(
+        child: TextButton.icon(
+          onPressed: () => launchUrl(Uri.parse(_urlPrivacy), mode: LaunchMode.inAppBrowserView),
+          icon: Icon(Icons.privacy_tip_outlined, size: 18, color: t.colorScheme.onSurfaceVariant),
+          label: Text("Informativa sulla privacy dell'app",
+              style: t.textTheme.bodyMedium?.copyWith(color: t.colorScheme.onSurfaceVariant, decoration: TextDecoration.underline)),
         ),
       ),
     );

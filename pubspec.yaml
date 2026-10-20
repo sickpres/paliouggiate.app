@@ -65,7 +65,11 @@ flutter:
 # icona dell'app: `dart run flutter_launcher_icons`
 flutter_launcher_icons:
   ios: true
-  android: false
+  android: true
   image_path: assets/icona.png
   remove_alpha_ios: true
+  # Android ritaglia l'icona a cerchio o a goccia: icona adattiva con l'immagine al centro su sfondo sfumato
+  adaptive_icon_background: assets/android/icona-sfondo.png
+  adaptive_icon_foreground: assets/android/icona-primo-piano.png
+  min_sdk_android: 24
 
