@@ -1,33 +1,133 @@
 import 'package:flutter/material.dart';
 
+import '../models.dart';
 import '../widgets/comuni.dart';
 import '../widgets/icone_tratto.dart';
 import '../widgets/mappa.dart';
 import 'mappa.dart';
 
-/// Pagina «Rioni» (dal riquadro della Home): la mappa dei rioni come sul portale, con la scheda del rione toccato,
-/// e il bottone per la mappa vera (Google Maps) con i confini.
-class PaginaRioni extends StatelessWidget {
+// solo per le schermate di prova nel simulatore: --dart-define=PROVA_RIONE_MAPPA=Somoca apre la pagina con quel rione
+// scelto, --dart-define=PROVA_MAPPA_GOOGLE=true con la mappa interattiva
+const _provaRione = String.fromEnvironment('PROVA_RIONE_MAPPA');
+const _provaGoogle = bool.fromEnvironment('PROVA_MAPPA_GOOGLE');
+
+/// Pagina «Rioni» (dal riquadro della Home): in alto la mappa dei rioni, disegnata oppure interattiva (Google Maps,
+/// con il pulsante «Mappa» in alto a destra), sotto la scheda del rione scelto e la legenda. Il rione si sceglie
+/// sulla mappa o nella legenda, e resta scelto passando da una mappa all'altra.
+class PaginaRioni extends StatefulWidget {
   const PaginaRioni({super.key});
 
   @override
+  State<PaginaRioni> createState() => _PaginaRioniState();
+}
+
+class _PaginaRioniState extends State<PaginaRioni> {
+  String? _scelto = _provaRione.isEmpty ? null : _provaRione;
+  bool _interattiva = _provaGoogle;
+  late final Future<List<Rione>> _rioni = rioniInCache();
+
+  void _scegli(String? nome) => setState(() => _scelto = nome);
+
+  @override
   Widget build(BuildContext context) {
+    // la mappa interattiva occupa poco meno di meta' dello schermo, senza scendere sotto i 300 punti
+    final altezzaGoogle = (MediaQuery.sizeOf(context).height * 0.45).clamp(300.0, 460.0);
     return Scaffold(
-      appBar: AppBar(title: const Text('Rioni')),
-      body: ListView(
-        padding: const EdgeInsets.only(bottom: 24),
-        children: [
-          Sezione(
-            'Gli otto rioni',
-            coda: FilledButton.tonalIcon(
-              onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PaginaMappa())),
-              icon: const IconaTratto('mappa', lato: 18),
-              label: const Text('Mappa'),
-              style: FilledButton.styleFrom(visualDensity: VisualDensity.compact),
+      appBar: AppBar(
+        title: const Text('Rioni'),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: IconButton(
+              tooltip: _interattiva ? 'Mostra la mappa disegnata' : 'Mostra la mappa interattiva',
+              isSelected: _interattiva,
+              onPressed: () => setState(() => _interattiva = !_interattiva),
+              icon: const IconaTratto('mappa', lato: 24),
+              style: IconButton.styleFrom(
+                backgroundColor: _interattiva ? Theme.of(context).colorScheme.primary : null,
+                foregroundColor: _interattiva ? Theme.of(context).colorScheme.onPrimary : null,
+              ),
             ),
           ),
-          const MappaRioni(),
         ],
+      ),
+      body: FutureBuilder<List<Rione>>(
+        future: _rioni,
+        builder: (context, s) {
+          final rioni = s.data ?? const <Rione>[];
+          return ListView(
+            padding: const EdgeInsets.only(bottom: 24),
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 6),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: Semantics(
+                    label: 'Mappa dei rioni di Uggiate con Ronago',
+                    child: _interattiva
+                        ? SizedBox(height: altezzaGoogle, child: MappaRioniGoogle(scelto: _scelto, onScegli: _scegli))
+                        : MappaDisegnata(rioni: rioni, scelto: _scelto, onScegli: _scegli),
+                  ),
+                ),
+              ),
+              if (_scelto != null) SchedaRione(_scelto!, rioni),
+              // la legenda solo senza rione scelto: con un rione scelto sotto la mappa c'e' la sua scheda
+              if (_scelto == null && rioni.isNotEmpty) _Legenda(rioni, _scelto, _scegli),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// Legenda sotto la mappa, su due colonne: stemma e nome di ogni rione; un tocco lo sceglie (o lo toglie).
+class _Legenda extends StatelessWidget {
+  final List<Rione> rioni;
+  final String? scelto;
+  final ValueChanged<String?> onScegli;
+  const _Legenda(this.rioni, this.scelto, this.onScegli);
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context);
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(8),
+        child: LayoutBuilder(builder: (context, c) {
+          final largo = (c.maxWidth - 8) / 2;
+          return Wrap(spacing: 8, runSpacing: 4, children: [
+            for (final r in rioni)
+              SizedBox(
+                width: largo,
+                child: Material(
+                  color: scelto == r.nome ? coloreHex(r.colore).withValues(alpha: 0.15) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(12),
+                  clipBehavior: Clip.antiAlias,
+                  child: InkWell(
+                    onTap: () => onScegli(scelto == r.nome ? null : r.nome),
+                    child: Semantics(
+                      button: true,
+                      selected: scelto == r.nome,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                        child: Row(children: [
+                          SegnoRione(rione: r, colore: r.colore, lato: 30),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(r.nome,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: t.textTheme.titleSmall?.copyWith(fontWeight: scelto == r.nome ? FontWeight.w800 : FontWeight.w600)),
+                          ),
+                        ]),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ]);
+        }),
       ),
     );
   }

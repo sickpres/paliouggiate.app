@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -15,28 +16,29 @@ const _canale = MethodChannel('palio/mappa');
 String? _chiaveImpostata; // Google Maps accetta la chiave una volta sola per avvio dell'app
 // solo per le prove nel simulatore: --dart-define=PROVA_SENZA_STILE=true apre la mappa senza lo stile cloud
 const _provaSenzaStile = bool.fromEnvironment('PROVA_SENZA_STILE');
-// --dart-define=PROVA_ZOOM=11.5 porta la mappa a quello zoom dopo l'inquadratura
-const _provaZoom = String.fromEnvironment('PROVA_ZOOM');
-// --dart-define=PROVA_RIONE_MAPPA=Somoca apre la mappa con quel rione gia' scelto
-const _provaRioneMappa = String.fromEnvironment('PROVA_RIONE_MAPPA');
 
-/// Mappa a tutta pagina (Google Maps, stile dal portale) con i confini dei rioni e i loro stemmi.
-class PaginaMappa extends StatefulWidget {
-  const PaginaMappa({super.key});
+// segnaposto tondo dei rioni, in punti: cerchio bianco con l'anello del colore del rione e lo stemma al centro
+const _latoSegno = 40.0;
+
+/// Mappa Google (stile dal portale) con i confini dei rioni e un segnaposto tondo per rione. Il rione scelto si
+/// colora di piu' e la mappa lo inquadra; un tocco su un rione o sul suo segnaposto lo sceglie, uno fuori lo toglie.
+/// Le dita muovono la mappa anche dentro una pagina che scorre.
+class MappaRioniGoogle extends StatefulWidget {
+  final String? scelto;
+  final ValueChanged<String?> onScegli;
+  const MappaRioniGoogle({super.key, required this.scelto, required this.onScegli});
 
   @override
-  State<PaginaMappa> createState() => _PaginaMappaState();
+  State<MappaRioniGoogle> createState() => _MappaRioniGoogleState();
 }
 
-class _PaginaMappaState extends State<PaginaMappa> {
+class _MappaRioniGoogleState extends State<MappaRioniGoogle> {
   late Future<ConfigMappa> _config = _carica();
-  final _stemmi = <int, BitmapDescriptor>{};
+  ConfigMappa? _c;
+  final _segni = <int, BitmapDescriptor>{};
   GoogleMapController? _mappa;
   bool _inquadrata = false;
-  Set<int>? _visibili; // stemmi che non si sovrappongono allo zoom attuale
-  List<Rione> _rioni = const []; // elenco completo (foto simbolo, capo rione) per il riquadro in fondo
-  String? _scelto;
-  bool _provaFatta = false;
+  Set<int>? _visibili; // segnaposto che non si sovrappongono allo zoom attuale
 
   Future<ConfigMappa> _carica() async {
     final c = await Api.instance.mappa();
@@ -44,35 +46,84 @@ class _PaginaMappaState extends State<PaginaMappa> {
       await _canale.invokeMethod('impostaChiave', c.chiaveIos);
       _chiaveImpostata = c.chiaveIos;
     }
-    _caricaStemmi(c);
-    rioniInCache().then((l) {
-      if (mounted) setState(() => _rioni = l);
-    }).catchError((_) {});
+    _c = c;
+    _caricaSegni(c);
     return c;
   }
 
-  // stemmi dei rioni come segnaposto, rimpiccioliti e convertiti in PNG
-  Future<void> _caricaStemmi(ConfigMappa c) async {
+  // segnaposto disegnati una volta per rione: prima senza stemma, poi con lo stemma appena arriva
+  Future<void> _caricaSegni(ConfigMappa c) async {
     final dpr = WidgetsBinding.instance.platformDispatcher.views.first.devicePixelRatio;
-    for (final r in c.rioni.where((x) => x.rione.haLogo && x.anelli.isNotEmpty)) {
-      try {
-        final risposta = await http.get(Uri.parse(Api.instance.logoRione(r.rione)));
-        if (risposta.statusCode != 200) continue;
-        final codec = await ui.instantiateImageCodec(risposta.bodyBytes, targetWidth: (40 * dpr).round());
-        final img = (await codec.getNextFrame()).image;
-        final png = await img.toByteData(format: ui.ImageByteFormat.png);
-        if (png == null) continue;
-        _stemmi[r.rione.id] = BitmapDescriptor.bytes(png.buffer.asUint8List(), width: 40);
-        if (mounted) setState(() {});
-      } catch (_) {
-        // senza stemma il rione resta solo colorato
+    for (final r in c.rioni.where((x) => x.anelli.isNotEmpty)) {
+      ui.Image? stemma;
+      if (r.rione.haLogo) {
+        try {
+          final risposta = await http.get(Uri.parse(Api.instance.logoRione(r.rione)));
+          if (risposta.statusCode == 200) {
+            final codec = await ui.instantiateImageCodec(risposta.bodyBytes, targetWidth: (26 * dpr).round());
+            stemma = (await codec.getNextFrame()).image;
+          }
+        } catch (_) {
+          // senza stemma il segnaposto resta un cerchio del colore del rione
+        }
       }
+      final segno = await _disegnaSegno(coloreHex(r.rione.colore), stemma, dpr);
+      if (segno == null) continue;
+      _segni[r.rione.id] = segno;
+      if (mounted) setState(() {});
     }
+  }
+
+  static Future<BitmapDescriptor?> _disegnaSegno(Color colore, ui.Image? stemma, double dpr) async {
+    final lato = _latoSegno * dpr;
+    final registro = ui.PictureRecorder();
+    final tela = Canvas(registro);
+    final centro = Offset(lato / 2, lato / 2);
+    final raggio = lato / 2 - 2 * dpr;
+    tela.drawCircle(centro + Offset(0, 1.5 * dpr), raggio, Paint()
+      ..color = Colors.black26
+      ..maskFilter = MaskFilter.blur(BlurStyle.normal, 1.5 * dpr));
+    if (stemma == null) {
+      tela.drawCircle(centro, raggio, Paint()..color = colore);
+      tela.drawCircle(centro, raggio, Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3 * dpr
+        ..color = Colors.white);
+    } else {
+      tela.drawCircle(centro, raggio, Paint()..color = Colors.white);
+      tela.drawCircle(centro, raggio - 1.75 * dpr, Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3.5 * dpr
+        ..color = colore);
+      final w = stemma.width.toDouble(), h = stemma.height.toDouble();
+      final scala = math.min(24 * dpr / w, 24 * dpr / h);
+      final dest = Rect.fromCenter(center: centro, width: w * scala, height: h * scala);
+      tela.drawImageRect(stemma, Rect.fromLTWH(0, 0, w, h), dest, Paint()..filterQuality = FilterQuality.high);
+    }
+    final img = await registro.endRecording().toImage(lato.round(), lato.round());
+    final png = await img.toByteData(format: ui.ImageByteFormat.png);
+    if (png == null) return null;
+    return BitmapDescriptor.bytes(png.buffer.asUint8List(), width: _latoSegno);
+  }
+
+  @override
+  void didUpdateWidget(MappaRioniGoogle vecchio) {
+    super.didUpdateWidget(vecchio);
+    if (vecchio.scelto != widget.scelto) _inquadra();
+  }
+
+  // inquadra il rione scelto, oppure tutti i rioni
+  void _inquadra() {
+    final c = _c;
+    if (c == null || _mappa == null) return;
+    final r = widget.scelto == null ? null : c.rioni.where((x) => x.rione.nome == widget.scelto).firstOrNull;
+    final limiti = r == null ? _limiti(c.rioni) : _limiti([r]);
+    if (limiti != null) _mappa!.animateCamera(CameraUpdate.newLatLngBounds(limiti, r == null ? 28 : 48));
   }
 
   static LatLng _ll((double, double) p) => LatLng(p.$1, p.$2);
 
-  // punto dove mettere lo stemma: il baricentro dell'anello piu' grande
+  // punto dove mettere il segnaposto: il baricentro dell'anello piu' grande
   static LatLng _centro(List<(double, double)> a) {
     double x = 0, y = 0, area = 0;
     for (var i = 0; i < a.length; i++) {
@@ -86,9 +137,9 @@ class _PaginaMappaState extends State<PaginaMappa> {
     return LatLng(y / (3 * area), x / (3 * area));
   }
 
-  // Stemmi da mostrare a uno zoom: si proiettano sullo schermo (Web Mercator, tile da 256 punti); se anche solo
-  // due si toccano spariscono tutti, e tornano tutti insieme quando c'e' spazio. Lo stemma e' largo 40 punti; 4 di margine.
-  static Set<int> _stemmiVisibili(ConfigMappa c, double zoom) {
+  // Segnaposto da mostrare a uno zoom: si proiettano sullo schermo (Web Mercator, tile da 256 punti); se anche solo
+  // due si toccano spariscono tutti, e tornano tutti insieme quando c'e' spazio.
+  static Set<int> _segniVisibili(ConfigMappa c, double zoom) {
     final scala = 256 * math.pow(2, zoom).toDouble();
     Offset schermo(LatLng p) {
       final s = math.sin(p.latitude * math.pi / 180).clamp(-0.9999, 0.9999);
@@ -98,14 +149,14 @@ class _PaginaMappaState extends State<PaginaMappa> {
     final punti = [for (final r in rioni) schermo(_centro(r.anelli.reduce((a, b) => a.length >= b.length ? a : b)))];
     for (var i = 0; i < punti.length; i++) {
       for (var j = i + 1; j < punti.length; j++) {
-        if ((punti[i] - punti[j]).distance < 44) return <int>{};
+        if ((punti[i] - punti[j]).distance < _latoSegno + 2) return <int>{};
       }
     }
     return {for (final r in rioni) r.rione.id};
   }
 
-  static LatLngBounds? _limiti(ConfigMappa c) {
-    final punti = [for (final r in c.rioni) for (final a in r.anelli) ...a];
+  static LatLngBounds? _limiti(List<RioneMappa> rioni) {
+    final punti = [for (final r in rioni) for (final a in r.anelli) ...a];
     if (punti.isEmpty) return null;
     final lat = punti.map((p) => p.$1), lng = punti.map((p) => p.$2);
     return LatLngBounds(southwest: LatLng(lat.reduce(math.min), lng.reduce(math.min)), northeast: LatLng(lat.reduce(math.max), lng.reduce(math.max)));
@@ -113,106 +164,57 @@ class _PaginaMappaState extends State<PaginaMappa> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Mappa dei rioni')),
-      body: FutureBuilder<ConfigMappa>(
-        future: _config,
-        builder: (context, s) {
-          if (s.hasError) {
-            return Messaggio(
+    return FutureBuilder<ConfigMappa>(
+      future: _config,
+      builder: (context, s) {
+        if (s.hasError) {
+          return Center(
+            child: Messaggio(
               icona: Icons.cloud_off,
               titolo: 'Impossibile caricare la mappa',
-              testo: s.error is ApiException ? s.error.toString() : null,
               azione: FilledButton.tonalIcon(
                 onPressed: () => setState(() => _config = _carica()),
                 icon: const Icon(Icons.refresh),
                 label: const Text('Riprova'),
               ),
-            );
-          }
-          if (!s.hasData) return const Center(child: CircularProgressIndicator());
-          final c = s.data!;
-          if (c.chiaveIos.isEmpty) {
-            return const Messaggio(
+            ),
+          );
+        }
+        if (!s.hasData) return const Center(child: CircularProgressIndicator());
+        final c = s.data!;
+        if (c.chiaveIos.isEmpty) {
+          return const Center(
+            child: Messaggio(
               icona: Icons.map_outlined,
               titolo: 'Mappa non ancora disponibile',
               testo: 'La mappa comparirà appena sarà configurata nel portale del Palio.',
-            );
-          }
-          return _mappaConRioni(context, c);
-        },
-      ),
-    );
-  }
-
-  // riquadro del rione scelto: foto «simbolo» 16:9 (se c'e'), stemma, nome e capo rione
-  Widget _riquadro(BuildContext context, ConfigMappa c) {
-    final t = Theme.of(context);
-    final r = rionePerNome(_rioni, _scelto!) ?? rionePerNome([for (final x in c.rioni) x.rione], _scelto!);
-    return Card(
-      margin: EdgeInsets.zero,
-      clipBehavior: Clip.antiAlias,
-      child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        if (r != null && r.haSimbolo)
-          AspectRatio(
-            aspectRatio: 16 / 9,
-            child: Image.network(
-              Api.instance.simboloRione(r),
-              fit: BoxFit.cover,
-              loadingBuilder: (context, figlio, avanzamento) =>
-                  avanzamento == null ? figlio : ColoredBox(color: coloreHex(r.colore).withValues(alpha: 0.15)),
-              errorBuilder: (context, e, s) => const SizedBox.shrink(),
             ),
-          ),
-        ListTile(
-          leading: SegnoRione(rione: r, colore: r?.colore ?? '', lato: 40),
-          title: Text(_scelto!, style: t.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
-          subtitle: r != null && r.capoRione.isNotEmpty ? Text('Capo rione: ${r.capoRione}') : null,
-          trailing: IconButton(tooltip: 'Chiudi', icon: const Icon(Icons.close), onPressed: () => setState(() => _scelto = null)),
-        ),
-      ]),
+          );
+        }
+        return _mappaConRioni(c);
+      },
     );
   }
 
-  // spazio occupato in fondo dal riquadro del rione: margine 24 + foto 16:9 (se c'e') + riga del nome 72 + 12 d'aria
-  double _spazioRiquadro(BuildContext context, String nome) {
-    final r = rionePerNome(_rioni, nome);
-    final largo = MediaQuery.sizeOf(context).width - 32;
-    return 24 + (r != null && r.haSimbolo ? largo * 9 / 16 : 0) + 72 + 12;
-  }
-
-  // Tocco su un rione: si apre il riquadro e il rione va al centro dello spazio che resta sopra. La mappa riceve un
-  // margine in basso alto quanto il riquadro, cosi' Google Maps inquadra solo nella parte libera.
-  void _seleziona(ConfigMappa c, String? nome) {
-    setState(() => _scelto = nome);
-    if (nome == null) return;
-    final r = c.rioni.where((x) => x.rione.nome == nome).firstOrNull;
-    if (r == null || r.anelli.isEmpty) return;
-    final punti = [for (final a in r.anelli) ...a];
-    final lat = punti.map((p) => p.$1), lng = punti.map((p) => p.$2);
-    final limiti = LatLngBounds(
-        southwest: LatLng(lat.reduce(math.min), lng.reduce(math.min)), northeast: LatLng(lat.reduce(math.max), lng.reduce(math.max)));
-    // dopo il ridisegno, quando la mappa ha gia' il margine nuovo
-    WidgetsBinding.instance.addPostFrameCallback((_) => _mappa?.animateCamera(CameraUpdate.newLatLngBounds(limiti, 40)));
-  }
-
-  Widget _mappaConRioni(BuildContext context, ConfigMappa c) {
-    final limiti = _limiti(c);
+  Widget _mappaConRioni(ConfigMappa c) {
+    final limiti = _limiti(c.rioni);
     final poligoni = <Polygon>{};
     final segni = <Marker>{};
-    final visibili = _visibili ??= _stemmiVisibili(c, 13.5);
+    final visibili = _visibili ??= _segniVisibili(c, 13);
     for (final r in c.rioni) {
       final col = coloreHex(r.rione.colore);
-      final scelto = _scelto == r.rione.nome;
+      final scelto = widget.scelto == r.rione.nome;
+      // con un rione scelto gli altri si schiariscono
+      final alfa = scelto ? 0.45 : (widget.scelto == null ? 0.22 : 0.10);
       for (var i = 0; i < r.anelli.length; i++) {
         poligoni.add(Polygon(
           polygonId: PolygonId('${r.rione.id}-$i'),
           points: [for (final p in r.anelli[i]) _ll(p)],
-          fillColor: col.withValues(alpha: scelto ? 0.55 : 0.35),
+          fillColor: col.withValues(alpha: alfa),
           strokeColor: col,
           strokeWidth: scelto ? 4 : 2,
           consumeTapEvents: true,
-          onTap: () => _seleziona(c, scelto ? null : r.rione.nome),
+          onTap: () => widget.onScegli(scelto ? null : r.rione.nome),
         ));
       }
       if (r.anelli.isNotEmpty) {
@@ -220,52 +222,41 @@ class _PaginaMappaState extends State<PaginaMappa> {
         segni.add(Marker(
           markerId: MarkerId('${r.rione.id}'),
           position: _centro(grande),
-          icon: _stemmi[r.rione.id] ?? BitmapDescriptor.defaultMarkerWithHue(HSVColor.fromColor(col).hue),
+          icon: _segni[r.rione.id] ?? BitmapDescriptor.defaultMarkerWithHue(HSVColor.fromColor(col).hue),
           anchor: const Offset(0.5, 0.5),
-          visible: visibili.contains(r.rione.id),
-          infoWindow: InfoWindow(title: r.rione.nome),
-          onTap: () => _seleziona(c, r.rione.nome),
+          visible: scelto || visibili.contains(r.rione.id),
+          zIndexInt: scelto ? 1 : 0,
+          onTap: () => widget.onScegli(r.rione.nome),
         ));
       }
     }
-    return Stack(children: [
-      GoogleMap(
-        mapId: c.stile.isEmpty || _provaSenzaStile ? null : c.stile,
-        initialCameraPosition: CameraPosition(
-            target: limiti == null
-                ? const LatLng(45.82, 8.96)
-                : LatLng((limiti.southwest.latitude + limiti.northeast.latitude) / 2, (limiti.southwest.longitude + limiti.northeast.longitude) / 2),
-            zoom: 13.5),
-        polygons: poligoni,
-        markers: segni,
-        padding: EdgeInsets.only(bottom: _scelto == null ? 0 : _spazioRiquadro(context, _scelto!)),
-        myLocationButtonEnabled: false,
-        mapToolbarEnabled: false,
-        zoomControlsEnabled: false,
-        onMapCreated: (m) => _mappa = m,
-        // allontanandosi gli stemmi che si toccano spariscono, e tornano quando c'e' spazio
-        onCameraMove: (pos) {
-          final v = _stemmiVisibili(c, pos.zoom);
-          if (!setEquals(v, _visibili)) setState(() => _visibili = v);
-        },
-        // tutti i rioni nello schermo: la prima volta che la mappa e' ferma (prima non conosce ancora le sue misure)
-        onCameraIdle: () {
-          // prova nel simulatore: dopo l'inquadratura iniziale si sceglie il rione come con un tocco
-          if (_inquadrata && _provaRioneMappa.isNotEmpty && !_provaFatta) {
-            _provaFatta = true;
-            _seleziona(c, _provaRioneMappa);
-          }
-          if (_inquadrata || limiti == null || _mappa == null) return;
-          _inquadrata = true;
-          _mappa!.animateCamera(_provaZoom.isEmpty
-              ? CameraUpdate.newLatLngBounds(limiti, 24)
-              : CameraUpdate.newLatLngZoom(
-                  LatLng((limiti.southwest.latitude + limiti.northeast.latitude) / 2, (limiti.southwest.longitude + limiti.northeast.longitude) / 2),
-                  double.parse(_provaZoom)));
-        },
-        onTap: (_) => setState(() => _scelto = null),
-      ),
-      if (_scelto != null) Positioned(left: 16, right: 16, bottom: 24, child: _riquadro(context, c)),
-    ]);
+    return GoogleMap(
+      mapId: c.stile.isEmpty || _provaSenzaStile ? null : c.stile,
+      initialCameraPosition: CameraPosition(
+          target: limiti == null
+              ? const LatLng(45.82, 8.96)
+              : LatLng((limiti.southwest.latitude + limiti.northeast.latitude) / 2, (limiti.southwest.longitude + limiti.northeast.longitude) / 2),
+          zoom: 13),
+      polygons: poligoni,
+      markers: segni,
+      // la mappa prende per se' le dita anche dentro la pagina che scorre
+      gestureRecognizers: {Factory<OneSequenceGestureRecognizer>(() => EagerGestureRecognizer())},
+      myLocationButtonEnabled: false,
+      mapToolbarEnabled: false,
+      zoomControlsEnabled: false,
+      onMapCreated: (m) => _mappa = m,
+      // allontanandosi i segnaposto che si toccano spariscono, e tornano quando c'e' spazio
+      onCameraMove: (pos) {
+        final v = _segniVisibili(c, pos.zoom);
+        if (!setEquals(v, _visibili)) setState(() => _visibili = v);
+      },
+      // la prima volta che la mappa e' ferma (prima non conosce ancora le sue misure) si inquadrano i rioni
+      onCameraIdle: () {
+        if (_inquadrata) return;
+        _inquadrata = true;
+        _inquadra();
+      },
+      onTap: (_) => widget.onScegli(null),
+    );
   }
 }

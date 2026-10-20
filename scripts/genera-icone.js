@@ -16,7 +16,7 @@ const LUCIDE = {
   home: 'house', calendario_menu: 'calendar-days', classifica_menu: 'trophy', giochi_menu: 'dices', social_menu: 'share-2',
   info: 'info', classifica_gioco: 'list-ordered', regolamento_gioco: 'scroll-text', criteri: 'list-checks', punteggio: 'medal',
   vista_elenco: 'list', vista_mese: 'calendar-days', freccia_sinistra: 'chevron-left', freccia_destra: 'chevron-right',
-  mappa: 'map', filtro: 'funnel'
+  mappa: 'map', filtro: 'funnel', radio: 'radio', documenti: 'file-text'
 };
 
 const attributi = (o) => Object.entries(o).filter(([k]) => k !== 'key').map(([k, v]) => `${k}="${v}"`).join(' ');

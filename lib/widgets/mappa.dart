@@ -6,233 +6,16 @@ import '../api.dart';
 import '../models.dart';
 import 'comuni.dart';
 
-// Mappa dei rioni: le stesse zone ed etichette del portale pubblico (index.html del repository paliouggiate,
-// viewBox "30 235 850 660"). I colori arrivano dal portale con i rioni.
-const _vista = Rect.fromLTWH(30, 235, 850, 660);
-
-class _Zona {
+/// Scheda di un rione: stemma, nome, descrizione, capo rione e la foto «simbolo» se c'e'.
+class SchedaRione extends StatelessWidget {
   final String nome;
-  final List<Offset> punti;
-  final Offset etichetta;
-  final double carattere;
-  final double gradi;
-  final String testo;
-  const _Zona(this.nome, this.punti, this.etichetta, this.carattere, this.gradi, [String? testo]) : testo = testo ?? nome;
-
-  Path get path => Path()..addPolygon(punti, true);
-}
-
-List<Offset> _p(String s) => [
-      for (final c in s.split(' '))
-        Offset(double.parse(c.split(',')[0]), double.parse(c.split(',')[1]))
-    ];
-
-final _zone = <_Zona>[
-  _Zona('Somoca', _p('300,262 330,262 395,322 430,362 445,395 445,440 415,505 355,545 330,538 290,540 250,572 165,570 150,520 135,432 175,385 215,340 260,290'),
-      const Offset(292, 440), 46, -12),
-  _Zona('Brughiere', _p('135,432 150,520 165,570 250,572 236,605 238,632 170,655 175,720 190,800 205,860 200,878 180,845 150,790 110,740 75,700 80,660 65,610 70,560 45,530 55,505 90,480 95,450'),
-      const Offset(128, 622), 27, -68),
-  _Zona('Uggiate Centro', _p('250,572 290,540 330,538 355,545 388,583 360,610 335,640 238,632 236,605'),
-      const Offset(314, 591), 27, -4, 'Uggiate\nCentro'),
-  _Zona('Pastura', _p('170,655 238,632 335,640 355,675 300,715 285,750 300,790 275,820 270,835 215,865 205,860 190,800 175,720'),
-      const Offset(243, 712), 24, -62),
-  _Zona('Trevano', _p('445,440 490,470 585,532 540,620 500,678 455,688 335,640 360,610 388,583 355,545 415,505'),
-      const Offset(462, 566), 30, 20),
-  _Zona('Lampona', _p('445,385 495,368 525,368 640,482 610,535 585,532 490,470 445,440'),
-      const Offset(540, 432), 27, 43),
-  _Zona('Ronago Centro', _p('525,368 555,305 590,285 650,275 690,250 720,250 752,290 750,318 735,420 690,470 640,482'),
-      const Offset(640, 372), 31, 14, 'Ronago\nCentro'),
-  _Zona('Mulini', _p('752,318 790,320 838,330 858,375 830,405 800,470 760,560 700,640 650,700 580,750 530,765 515,820 495,840 470,790 440,745 455,688 500,678 540,620 585,532 610,535 640,482 690,470 735,420 750,318'),
-      const Offset(642, 590), 44, -50),
-];
-
-class _Dati {
   final List<Rione> rioni;
-  final ClassificaDettaglio classifica;
-  final List<AnnoArchivio> archivio;
-  _Dati(this.rioni, this.classifica, this.archivio);
-}
-
-/// Mappa cliccabile dei rioni con la scheda del rione scelto.
-class MappaRioni extends StatefulWidget {
-  const MappaRioni({super.key});
-
-  @override
-  State<MappaRioni> createState() => _MappaRioniState();
-}
-
-class _MappaRioniState extends State<MappaRioni> {
-  late final Future<_Dati> _dati = () async {
-    final r = await Future.wait([rioniInCache(), Api.instance.classifica(), Api.instance.archivio()]);
-    return _Dati(r[0] as List<Rione>, r[1] as ClassificaDettaglio, r[2] as List<AnnoArchivio>);
-  }();
-  // solo per le schermate di prova nel simulatore: --dart-define=PROVA_MAPPA=Somoca
-  String? _scelto = const String.fromEnvironment('PROVA_MAPPA').isEmpty ? null : const String.fromEnvironment('PROVA_MAPPA');
-
-  void _tocca(Offset locale, Size dim) {
-    final s = dim.width / _vista.width;
-    final p = Offset(locale.dx / s + _vista.left, locale.dy / s + _vista.top);
-    String? nome;
-    for (final z in _zone) {
-      if (z.path.contains(p)) nome = z.nome;
-    }
-    setState(() => _scelto = nome == null || nome == _scelto ? null : nome);
-  }
+  const SchedaRione(this.nome, this.rioni, {super.key});
 
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context);
-    return FutureBuilder<_Dati>(
-      future: _dati,
-      builder: (context, s) {
-        // senza dati la mappa resta grigia: e' un di piu' della Home
-        final d = s.data;
-        final rioni = d?.rioni ?? const <Rione>[];
-        return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          Card(
-            clipBehavior: Clip.antiAlias,
-            child: Padding(
-              padding: const EdgeInsets.all(8),
-              child: AspectRatio(
-                aspectRatio: _vista.width / _vista.height,
-                child: LayoutBuilder(
-                  builder: (context, c) => GestureDetector(
-                    onTapUp: (e) => _tocca(e.localPosition, c.biggest),
-                    child: Semantics(
-                      label: 'Mappa dei rioni di Uggiate con Ronago',
-                      child: CustomPaint(size: c.biggest, painter: _Pittore(rioni, _scelto)),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          if (_scelto == null)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
-              child: Text('Tocca un rione sulla mappa per vederne i dettagli.',
-                  style: t.textTheme.bodyMedium?.copyWith(color: t.colorScheme.onSurfaceVariant)),
-            )
-          else if (d != null)
-            _Scheda(_scelto!, d),
-        ]);
-      },
-    );
-  }
-}
-
-bool _chiaro(Color c) => 0.299 * (c.r * 255) + 0.587 * (c.g * 255) + 0.114 * (c.b * 255) > 160;
-
-class _Pittore extends CustomPainter {
-  final List<Rione> rioni;
-  final String? scelto;
-  _Pittore(this.rioni, this.scelto);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final s = size.width / _vista.width;
-    canvas.save();
-    canvas.scale(s);
-    canvas.translate(-_vista.left, -_vista.top);
-    final bordo = Paint()
-      ..style = PaintingStyle.stroke
-      ..color = Colors.white
-      ..strokeWidth = 3
-      ..strokeJoin = StrokeJoin.round;
-    for (final z in _zone) {
-      final r = rionePerNome(rioni, z.nome);
-      var colore = r == null ? const Color(0xFF999999) : coloreHex(r.colore, const Color(0xFF999999));
-      if (z.nome == scelto) colore = Color.lerp(colore, Colors.white, 0.12)!;
-      canvas.drawPath(z.path, Paint()..color = colore);
-      canvas.drawPath(z.path, bordo);
-    }
-    // rione scelto: bordo bianco spesso con ombra, come sul portale
-    if (scelto != null) {
-      final z = _zone.firstWhere((x) => x.nome == scelto);
-      canvas.drawPath(z.path, Paint()
-        ..style = PaintingStyle.stroke
-        ..color = Colors.black54
-        ..strokeWidth = 8
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5));
-      canvas.drawPath(z.path, Paint()
-        ..style = PaintingStyle.stroke
-        ..color = Colors.white
-        ..strokeWidth = 6
-        ..strokeJoin = StrokeJoin.round);
-    }
-    for (final z in _zone) {
-      final r = rionePerNome(rioni, z.nome);
-      final scuro = r != null && _chiaro(coloreHex(r.colore, const Color(0xFF999999)));
-      _etichetta(canvas, z, scuro);
-    }
-    canvas.restore();
-  }
-
-  void _etichetta(Canvas canvas, _Zona z, bool scuro) {
-    TextPainter pittore(Paint p) => TextPainter(
-          text: TextSpan(
-            text: z.testo,
-            style: TextStyle(fontSize: z.carattere, fontWeight: FontWeight.w700, height: 1.1, foreground: p),
-          ),
-          textAlign: TextAlign.center,
-          textDirection: TextDirection.ltr,
-        )..layout();
-    final contorno = pittore(Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3
-      ..strokeJoin = StrokeJoin.round
-      ..color = scuro ? Colors.white60 : Colors.black38);
-    final pieno = pittore(Paint()..color = scuro ? const Color(0xFF222222) : Colors.white);
-    canvas.save();
-    canvas.translate(z.etichetta.dx, z.etichetta.dy);
-    canvas.rotate(z.gradi * math.pi / 180);
-    final o = Offset(-pieno.width / 2, -pieno.height / 2);
-    contorno.paint(canvas, o);
-    pieno.paint(canvas, o);
-    canvas.restore();
-  }
-
-  @override
-  bool shouldRepaint(_Pittore old) => old.scelto != scelto || old.rioni != rioni;
-}
-
-class _Scheda extends StatelessWidget {
-  final String nome;
-  final _Dati d;
-  const _Scheda(this.nome, this.d);
-
-  Widget _foto(Rione r) => Padding(
-        padding: const EdgeInsets.only(top: 12),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: AspectRatio(
-            aspectRatio: 16 / 9,
-            child: Image.network(
-              Api.instance.simboloRione(r),
-              fit: BoxFit.cover,
-              loadingBuilder: (context, figlio, avanzamento) =>
-                  avanzamento == null ? figlio : ColoredBox(color: coloreHex(r.colore).withValues(alpha: 0.15)),
-              errorBuilder: (context, e, s) => const SizedBox.shrink(),
-            ),
-          ),
-        ),
-      );
-
-  @override
-  Widget build(BuildContext context) {
-    final t = Theme.of(context);
-    final r = rionePerNome(d.rioni, nome);
-    final righe = d.classifica.righe;
-    final i = righe.indexWhere((x) => x.nome.toLowerCase() == nome.toLowerCase());
-    final voci = <(String, String)>[];
-    if (i >= 0) {
-      voci.add(('Classifica attuale', '${d.classifica.iniziata ? '${i + 1}° · ' : ''}${righe[i].punti} punti'));
-    }
-    for (final a in d.archivio) {
-      for (final c in a.classifica) {
-        if (c.nome.toLowerCase() == nome.toLowerCase()) voci.add(('Palio ${a.anno}', '${c.posizione}° · ${c.punti} punti'));
-      }
-    }
+    final r = rionePerNome(rioni, nome);
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -250,17 +33,131 @@ class _Scheda extends StatelessWidget {
                 text: r != null && r.capoRione.isNotEmpty ? r.capoRione : 'da definire',
                 style: const TextStyle(fontWeight: FontWeight.w700)),
           ])),
-          for (var n = 0; n < voci.length; n++) ...[
-            const SizedBox(height: 10),
-            Text(voci[n].$1.toUpperCase(),
-                style: t.textTheme.labelSmall?.copyWith(color: t.colorScheme.onSurfaceVariant, letterSpacing: 0.8, fontWeight: FontWeight.w600)),
-            Text(voci[n].$2, style: t.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600)),
-            // la foto «simbolo» del rione sotto il punteggio attuale
-            if (n == 0 && i >= 0 && r != null && r.haSimbolo) _foto(r),
-          ],
-          if (i < 0 && r != null && r.haSimbolo) _foto(r),
+          if (r != null && r.haSimbolo)
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: AspectRatio(
+                  aspectRatio: 16 / 9,
+                  child: Image.network(
+                    Api.instance.simboloRione(r),
+                    fit: BoxFit.cover,
+                    loadingBuilder: (context, figlio, avanzamento) =>
+                        avanzamento == null ? figlio : ColoredBox(color: coloreHex(r.colore).withValues(alpha: 0.15)),
+                    errorBuilder: (context, e, s) => const SizedBox.shrink(),
+                  ),
+                ),
+              ),
+            ),
         ]),
       ),
     );
   }
+}
+
+// ---------- mappa disegnata: assets/mappa_rioni.webp (1129 x 980, ritagliata sopra e sotto i rioni) ----------
+const _larghezza = 1129.0, _altezza = 980.0;
+
+class _Zona {
+  final String nome;
+  final Offset stemma; // centro dello stemma nel disegno
+  final List<Offset> confine; // contorno approssimato, per capire quale rione si tocca
+  const _Zona(this.nome, this.stemma, this.confine);
+}
+
+List<Offset> _p(String s) => [
+      for (final c in s.split(' ')) Offset(double.parse(c.split(',')[0]), double.parse(c.split(',')[1]))
+    ];
+
+// Confini: quelli della vecchia mappa del portale portati sul disegno (trasformazione affine stimata sugli stemmi,
+// scarto massimo una ventina di pixel). Bastano per il tocco; per evidenziare il rione si usa lo stemma.
+final _zone = <_Zona>[
+  _Zona('Somoca', const Offset(375, 295),
+      _p('381,39 419,44 505,142 551,206 572,257 574,322 538,412 463,460 431,446 380,442 330,482 221,465 200,390 177,259 226,197 276,138 331,73')),
+  _Zona('Brughiere', const Offset(175, 533),
+      _p('177,259 200,390 221,465 330,482 313,528 317,568 231,590 240,686 263,805 284,895 279,920 252,869 211,784 158,704 112,640 116,582 95,507 100,435 66,387 78,352 122,322 127,279')),
+  _Zona('Uggiate Centro', const Offset(408, 500), _p('330,482 380,442 431,446 463,460 507,521 472,556 441,596 317,568 313,528')),
+  _Zona('Pastura', const Offset(348, 720),
+      _p('231,590 317,568 441,596 468,650 400,699 382,748 403,808 372,848 366,869 297,904 284,895 263,805 240,686')),
+  _Zona('Trevano', const Offset(598, 530), _p('574,322 632,374 756,480 702,600 654,678 596,685 441,596 472,556 507,521 463,460 538,412')),
+  _Zona('Lampona', const Offset(686, 340), _p('571,242 634,226 673,231 824,416 788,488 756,480 632,374 574,322')),
+  _Zona('Ronago Centro', const Offset(848, 240),
+      _p('673,231 708,144 752,120 828,116 878,86 917,91 959,155 958,195 943,341 888,407 824,416')),
+  _Zona('Mulini', const Offset(830, 558),
+      _p('960,195 1009,205 1071,227 1098,296 1064,335 1028,425 981,549 907,656 846,735 759,796 696,810 679,888 654,914 620,837 580,766 596,685 654,678 702,600 756,480 788,488 824,416 888,407 943,341 958,195')),
+];
+
+/// Mappa disegnata dei rioni: un tocco su un rione lo sceglie (su quello gia' scelto o fuori dai rioni lo toglie).
+/// Il rione scelto ha un anello del suo colore attorno allo stemma.
+class MappaDisegnata extends StatelessWidget {
+  final List<Rione> rioni;
+  final String? scelto;
+  final ValueChanged<String?> onScegli;
+  const MappaDisegnata({super.key, required this.rioni, required this.scelto, required this.onScegli});
+
+  void _tocca(Offset locale, Size dim) {
+    final p = Offset(locale.dx * _larghezza / dim.width, locale.dy * _altezza / dim.height);
+    String? nome;
+    // prima lo stemma piu' vicino (se il tocco e' sopra uno stemma), poi il confine che contiene il punto
+    for (final z in _zone) {
+      if ((z.stemma - p).distance < 60) nome = z.nome;
+    }
+    if (nome == null) {
+      for (final z in _zone) {
+        if ((Path()..addPolygon(z.confine, true)).contains(p)) nome = z.nome;
+      }
+    }
+    onScegli(nome == null || nome == scelto ? null : nome);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AspectRatio(
+      aspectRatio: _larghezza / _altezza,
+      child: LayoutBuilder(
+        builder: (context, c) => GestureDetector(
+          onTapUp: (e) => _tocca(e.localPosition, c.biggest),
+          child: Stack(fit: StackFit.expand, children: [
+            Image.asset('assets/mappa_rioni.webp',
+                fit: BoxFit.fill, cacheWidth: (c.maxWidth * MediaQuery.devicePixelRatioOf(context)).round(), excludeFromSemantics: true),
+            if (scelto != null) CustomPaint(painter: _Anello(_zone.where((z) => z.nome == scelto).firstOrNull, rioni)),
+          ]),
+        ),
+      ),
+    );
+  }
+}
+
+/// Anello attorno allo stemma del rione scelto: bianco con ombra, poi il colore del rione.
+class _Anello extends CustomPainter {
+  final _Zona? zona;
+  final List<Rione> rioni;
+  _Anello(this.zona, this.rioni);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final z = zona;
+    if (z == null) return;
+    final s = size.width / _larghezza;
+    final centro = Offset(z.stemma.dx * s, z.stemma.dy * s);
+    final raggio = 70 * s;
+    final colore = coloreHex(rionePerNome(rioni, z.nome)?.colore ?? '', Colors.white);
+    canvas.drawCircle(centro, raggio, Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = math.max(6, 14 * s)
+      ..color = Colors.black38
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4));
+    canvas.drawCircle(centro, raggio, Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = math.max(5, 12 * s)
+      ..color = Colors.white);
+    canvas.drawCircle(centro, raggio, Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = math.max(2.5, 5 * s)
+      ..color = colore);
+  }
+
+  @override
+  bool shouldRepaint(_Anello old) => old.zona != zona || old.rioni != rioni;
 }

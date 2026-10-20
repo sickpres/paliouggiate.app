@@ -3,7 +3,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../api.dart';
 import '../models.dart';
+import '../tema.dart';
 import '../widgets/comuni.dart';
+import '../widgets/foto_gioco.dart';
 import '../widgets/griglia_mese.dart';
 import '../widgets/icone_tratto.dart';
 import 'gioco.dart';
@@ -20,11 +22,11 @@ Future<_Programma> _carica() async {
   return _Programma(r[0] as Edizione, r[1] as List<Voce>);
 }
 
-// vista scelta (mese, di partenza, o elenco) e filtro per eta': restano gli stessi alle aperture successive
-const _kVista = 'vista_calendario';
+// filtro per eta': resta lo stesso alle aperture successive. La vista invece parte sempre dal programma con le foto;
+// il calendario del mese si apre dal pulsante in alto
 const _kEta = 'eta_calendario';
-// solo per le schermate di prova nel simulatore: --dart-define=PROVA_ELENCO=true
-const _provaElenco = bool.fromEnvironment('PROVA_ELENCO');
+// solo per le schermate di prova nel simulatore: --dart-define=PROVA_MESE=true apre il calendario del mese
+const _provaMese = bool.fromEnvironment('PROVA_MESE');
 
 // filtro per eta': con un'eta' scelta restano solo i giochi di quella categoria; i giochi «per tutti»
 // e gli eventi si vedono solo con «Tutti» (nessun filtro)
@@ -38,7 +40,7 @@ class PaginaCalendario extends StatefulWidget {
 }
 
 class _PaginaCalendarioState extends State<PaginaCalendario> {
-  bool _mese = !_provaElenco;
+  bool _mese = _provaMese;
   String? _filtro = etaIniziale;
 
   @override
@@ -47,17 +49,11 @@ class _PaginaCalendarioState extends State<PaginaCalendario> {
     SharedPreferences.getInstance().then((p) {
       if (!mounted) return;
       final eta = p.getString(_kEta);
-      setState(() {
-        if (!_provaElenco && p.getString(_kVista) == 'elenco') _mese = false;
-        if (provaEta.isEmpty) _filtro = opzioniEta.any((o) => o.valore == eta) ? eta : null;
-      });
+      if (provaEta.isEmpty) setState(() => _filtro = opzioniEta.any((o) => o.valore == eta) ? eta : null);
     }).catchError((_) {});
   }
 
-  void _cambia() {
-    setState(() => _mese = !_mese);
-    SharedPreferences.getInstance().then((p) => p.setString(_kVista, _mese ? 'mese' : 'elenco')).catchError((_) => false);
-  }
+  void _cambia() => setState(() => _mese = !_mese);
 
   Future<void> _filtra() async {
     final o = await scegliFiltro(context, 'Gare per età', opzioniEta, _filtro);
@@ -76,7 +72,7 @@ class _PaginaCalendarioState extends State<PaginaCalendario> {
         actions: [
           BottoneFiltra(attivo: _filtro != null, onPressed: _filtra),
           IconButton(
-            tooltip: _mese ? 'Mostra l\'elenco completo' : 'Mostra il calendario del mese',
+            tooltip: _mese ? 'Mostra il programma' : 'Mostra il calendario del mese',
             onPressed: _cambia,
             icon: IconaTratto(_mese ? 'vista_elenco' : 'vista_mese', lato: 24),
           ),
@@ -85,7 +81,7 @@ class _PaginaCalendarioState extends State<PaginaCalendario> {
       ),
       body: DatiRemoti<_Programma>(carica: _carica, costruisci: (context, p) {
         final voci = p.voci.where((v) => _perEta(v, _filtro)).toList();
-        return _mese ? _VistaMese(p.edizione, voci) : _Elenco(voci, filtrato: _filtro != null);
+        return _mese ? _VistaMese(p.edizione, voci) : _VistaProgramma(voci, filtrato: _filtro != null);
       }),
     );
   }
@@ -158,7 +154,7 @@ class _VistaMeseState extends State<_VistaMese> {
                     style: t.textTheme.bodyMedium?.copyWith(color: t.colorScheme.onSurfaceVariant)),
               )
             else
-              for (final v in delGiorno) VoceTile(v),
+              for (final v in delGiorno) SchedaVoce(v),
           ],
         ),
       ),
@@ -166,17 +162,52 @@ class _VistaMeseState extends State<_VistaMese> {
   }
 }
 
-class _Elenco extends StatelessWidget {
+const _giorniBrevi = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
+
+/// Vista di partenza: in alto i giorni del programma da scegliere («Tutti» o uno solo), sotto gli appuntamenti
+/// in schede con la foto del gioco.
+class _VistaProgramma extends StatefulWidget {
   final List<Voce> voci;
   final bool filtrato;
-  const _Elenco(this.voci, {required this.filtrato});
+  const _VistaProgramma(this.voci, {required this.filtrato});
+
+  @override
+  State<_VistaProgramma> createState() => _VistaProgrammaState();
+}
+
+class _VistaProgrammaState extends State<_VistaProgramma> {
+  DateTime? _giorno; // null = tutti i giorni
+
+  List<DateTime> get _giorni {
+    final g = <DateTime>[];
+    for (final v in widget.voci) {
+      final d = DateTime(v.data.year, v.data.month, v.data.day);
+      if (g.isEmpty || g.last != d) g.add(d);
+    }
+    return g;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    // nei giorni del Palio si parte da oggi, altrimenti da «Tutti»
+    final oggi = oggiApp();
+    for (final g in _giorni) {
+      if (stessoGiorno(g, oggi)) _giorno = g;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final giorni = _giorni;
+    // il giorno scelto puo' sparire cambiando il filtro per eta': allora si torna a «Tutti»
+    final scelto = giorni.any((g) => g == _giorno) ? _giorno : null;
+    final voci = scelto == null ? widget.voci : widget.voci.where((v) => stessoGiorno(v.data, scelto)).toList();
     final oggi = oggiApp();
+
     final righe = <Widget>[];
-    if (voci.isEmpty) {
-      righe.add(filtrato
+    if (widget.voci.isEmpty) {
+      righe.add(widget.filtrato
           ? const Messaggio(icona: Icons.event_busy, titolo: 'Nessuna gara per questa età')
           : const Messaggio(
               icona: Icons.event_busy,
@@ -186,27 +217,79 @@ class _Elenco extends StatelessWidget {
     }
     DateTime? giorno;
     for (final v in voci) {
-      if (giorno == null || !stessoGiorno(giorno, v.data)) {
+      // con «Tutti» un'intestazione per giorno; con un giorno solo il giorno e' gia' nel filtro
+      if (scelto == null && (giorno == null || !stessoGiorno(giorno, v.data))) {
         giorno = v.data;
         righe.add(Sezione(giornoLungo(v.data),
             coda: stessoGiorno(v.data, oggi) ? Chip(label: const Text('Oggi'), visualDensity: VisualDensity.compact) : null));
       }
-      righe.add(VoceTile(v));
+      righe.add(SchedaVoce(v));
     }
     righe.add(const SizedBox(height: 24));
-    return ListView(physics: const AlwaysScrollableScrollPhysics(), children: righe);
+
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      if (giorni.isNotEmpty)
+        SizedBox(
+          height: 56,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
+            children: [
+              _ChipGiorno('Tutti', scelto == null, () => setState(() => _giorno = null)),
+              for (final g in giorni)
+                _ChipGiorno('${_giorniBrevi[g.weekday - 1]} ${g.day}', scelto == g, () => setState(() => _giorno = g)),
+            ],
+          ),
+        ),
+      Expanded(child: ListView(physics: const AlwaysScrollableScrollPhysics(), children: righe)),
+    ]);
   }
 }
 
-/// Una voce del programma: un gioco apre la sua pagina, la pallavolo il calendario delle partite.
-class VoceTile extends StatelessWidget {
-  final Voce v;
-  const VoceTile(this.v, {super.key});
+/// Giorno da scegliere in alto nel programma: pillola oro se scelto, chiara altrimenti.
+class _ChipGiorno extends StatelessWidget {
+  final String testo;
+  final bool scelto;
+  final VoidCallback onTap;
+  const _ChipGiorno(this.testo, this.scelto, this.onTap);
 
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context);
-    final dettagli = [v.chi, v.luogo].where((s) => s.isNotEmpty).join(' · ');
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: Semantics(
+        button: true,
+        selected: scelto,
+        child: Material(
+          color: scelto ? oro : t.colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(12),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Center(
+                child: Text(testo,
+                    style: t.textTheme.titleSmall?.copyWith(
+                        color: scelto ? bluNotte : t.colorScheme.onSurface, fontWeight: scelto ? FontWeight.w800 : FontWeight.w600)),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Appuntamento del programma in una scheda con la foto del gioco a sinistra (FotoGioco).
+class SchedaVoce extends StatelessWidget {
+  final Voce v;
+  const SchedaVoce(this.v, {super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context);
     final partite = v.tipo == 'pallavolo';
     final gioco = !v.evento && v.giocoId != null && !partite;
     final apri = partite
@@ -219,44 +302,33 @@ class VoceTile extends StatelessWidget {
       child: InkWell(
         onTap: apri,
         child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(
-              width: 52,
-              child: Text(v.ora, style: t.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700, fontFeatures: const [FontFeature.tabularFigures()])),
-            ),
-            CircleAvatar(
-              radius: 18,
-              backgroundColor: v.evento ? t.colorScheme.tertiaryContainer : t.colorScheme.secondaryContainer,
-              child: v.evento
-                  ? Icon(Icons.celebration, size: 20, color: t.colorScheme.onTertiaryContainer)
-                  : IconaGioco(v.tipo, lato: 20, colore: t.colorScheme.onSecondaryContainer),
-            ),
-            const SizedBox(width: 12),
+          padding: const EdgeInsets.all(8),
+          child: Row(children: [
+            FotoGioco(giocoId: v.giocoId, tipo: v.tipo, evento: v.evento),
+            const SizedBox(width: 14),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(v.titolo, style: t.textTheme.titleMedium),
-                  if (dettagli.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 2),
-                      child: Text(dettagli, style: t.textTheme.bodyMedium?.copyWith(color: t.colorScheme.onSurfaceVariant)),
-                    ),
-                  if (v.note.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Text(v.note, style: t.textTheme.bodySmall?.copyWith(fontStyle: FontStyle.italic)),
-                    ),
-                ],
-              ),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                if (v.ora.isNotEmpty)
+                  Text(v.ora,
+                      style: t.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800, fontFeatures: const [FontFeature.tabularFigures()])),
+                Text(v.titolo, style: t.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800, height: 1.2)),
+                if (v.luogo.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(v.luogo, style: t.textTheme.bodyMedium?.copyWith(color: t.colorScheme.onSurfaceVariant)),
+                  ),
+                if (v.chi.isNotEmpty && v.chi != 'Tutti')
+                  Text(v.chi, style: t.textTheme.bodySmall?.copyWith(color: t.colorScheme.onSurfaceVariant)),
+                if (v.note.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(v.note, style: t.textTheme.bodySmall?.copyWith(fontStyle: FontStyle.italic)),
+                  ),
+              ]),
             ),
             if (apri != null) Icon(Icons.chevron_right, color: t.colorScheme.onSurfaceVariant),
-          ],
+          ]),
         ),
-      ),
       ),
     );
   }

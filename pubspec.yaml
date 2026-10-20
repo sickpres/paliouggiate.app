@@ -31,11 +31,39 @@ flutter:
   uses-material-design: true
   assets:
     - assets/logo.png
-    - assets/header.webp
+    - assets/home.webp
+    - assets/mappa_rioni.webp
+    - assets/sfondi/
     - assets/facebook.png
     - assets/instagram.png
     - assets/vs.webp
     - assets/vs_scuro.webp
+    - assets/fonts/OFL-Nunito.txt
+    - assets/fonts/OFL-EncodeSans.txt
+  # Nunito per i testi, Encode Sans Semi Condensed per titoli e scritte della Home (SIL Open Font License, assets/fonts/OFL-*.txt), da Google Fonts:
+  # file statici ricavati dai variabili, un peso per file
+  fonts:
+    - family: Nunito
+      fonts:
+        - asset: assets/fonts/Nunito-Regular.ttf
+        - asset: assets/fonts/Nunito-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Nunito-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Nunito-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Nunito-ExtraBold.ttf
+          weight: 800
+        - asset: assets/fonts/Nunito-Black.ttf
+          weight: 900
+    - family: EncodeSansSemiCondensed
+      fonts:
+        - asset: assets/fonts/EncodeSansSemiCondensed-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/EncodeSansSemiCondensed-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/EncodeSansSemiCondensed-ExtraBold.ttf
+          weight: 800
 
 # icona dell'app: `dart run flutter_launcher_icons`
 flutter_launcher_icons:
@@ -43,3 +71,4 @@ flutter_launcher_icons:
   android: false
   image_path: assets/icona.png
   remove_alpha_ios: true
+

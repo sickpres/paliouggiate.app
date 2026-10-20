@@ -22,6 +22,9 @@ Future<_Dati> _carica() async {
   return _Dati(r[0] as Edizione, r[1] as ClassificaDettaglio, r[2] as List<AnnoArchivio>, r[3] as List<Rione>);
 }
 
+// solo per le schermate di prova nel simulatore: --dart-define=PROVA_ALBO=true apre l'albo d'oro
+const _provaAlbo = bool.fromEnvironment('PROVA_ALBO');
+
 class PaginaClassifica extends StatefulWidget {
   const PaginaClassifica({super.key});
 
@@ -30,7 +33,7 @@ class PaginaClassifica extends StatefulWidget {
 }
 
 class _PaginaClassificaState extends State<PaginaClassifica> {
-  bool _albo = false;
+  bool _albo = _provaAlbo;
 
   @override
   Widget build(BuildContext context) {
@@ -84,40 +87,56 @@ class _Generale extends StatelessWidget {
       physics: const AlwaysScrollableScrollPhysics(),
       children: [
         Sezione(d.edizione.nome.isEmpty ? 'Classifica generale' : 'Classifica generale · ${d.edizione.nome}'),
-        for (var i = 0; i < c.righe.length; i++)
-          Card(
-            child: Theme(
-              data: t.copyWith(dividerColor: Colors.transparent),
-              child: ExpansionTile(
-                enabled: c.righe[i].perGioco.isNotEmpty,
-                leading: SizedBox(
-                  width: 76,
-                  child: Row(children: [
-                    SizedBox(
-                      width: 32,
-                      child: Text(c.iniziata ? '${pos[i]}°' : '–',
-                          style: t.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
-                    ),
-                    SegnoRione(rione: _rione(c.righe[i].id), colore: c.righe[i].colore, lato: 40),
-                  ]),
-                ),
-                title: Text(c.righe[i].nome, style: t.textTheme.titleMedium),
-                trailing: Text('${c.righe[i].punti}', style: t.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
-                children: [
-                  for (final e in c.righe[i].perGioco.entries)
-                    ListTile(
-                      dense: true,
-                      title: Text(nomiGiochi[e.key] ?? 'Altri punti'),
-                      trailing: Text('${e.value}'),
-                    ),
-                ],
-              ),
-            ),
+        // come l'albo d'oro: un'unica scheda con una riga per rione; toccando una riga si vedono i punti per gioco
+        Card(
+          clipBehavior: Clip.antiAlias,
+          child: Theme(
+            data: t.copyWith(dividerColor: Colors.transparent),
+            child: Column(children: [
+              for (var i = 0; i < c.righe.length; i++)
+                // senza punti per gioco una riga semplice, come nell'albo d'oro; con i punti si apre al tocco
+                if (c.righe[i].perGioco.isEmpty)
+                  ListTile(leading: _inizio(t, c, pos, i), title: Text(c.righe[i].nome), trailing: _punti(t, c.righe[i].punti))
+                else
+                  ExpansionTile(
+                    leading: _inizio(t, c, pos, i),
+                    title: Text(c.righe[i].nome),
+                    trailing: _punti(t, c.righe[i].punti),
+                    children: [
+                      for (final e in c.righe[i].perGioco.entries)
+                        ListTile(
+                          dense: true,
+                          contentPadding: const EdgeInsets.fromLTRB(108, 0, 24, 0),
+                          title: Text(nomiGiochi[e.key] ?? 'Altri punti'),
+                          trailing: Text('${e.value}'),
+                        ),
+                    ],
+                  ),
+            ]),
           ),
+        ),
         const SizedBox(height: 24),
       ],
     );
   }
+
+  // posizione (coppa per il primo, trattino prima dei punti) e stemma, come nell'albo d'oro
+  Widget _inizio(ThemeData t, ClassificaDettaglio c, List<int> pos, int i) => SizedBox(
+        width: 76,
+        child: Row(children: [
+          SizedBox(
+            width: 32,
+            child: !c.iniziata
+                ? Text('–', style: t.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800))
+                : pos[i] == 1
+                    ? const Icon(Icons.emoji_events, color: Color(0xFFD4A017))
+                    : Text('${pos[i]}°', style: t.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+          ),
+          SegnoRione(rione: _rione(c.righe[i].id), colore: c.righe[i].colore),
+        ]),
+      );
+
+  Widget _punti(ThemeData t, int punti) => Text('$punti', style: t.textTheme.titleMedium);
 
   Rione? _rione(int id) {
     for (final r in d.rioni) {

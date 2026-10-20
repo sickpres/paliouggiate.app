@@ -1,20 +1,19 @@
 import 'package:flutter/material.dart';
 
 import '../promemoria.dart';
+import '../tema.dart';
 import '../widgets/icone_tratto.dart';
 import 'calendario.dart';
 import 'classifica.dart';
 import 'documenti.dart';
 import 'giochi.dart';
-import 'mappa.dart';
 import 'oggi.dart';
 import 'pallavolo.dart';
 import 'rioni.dart';
 
-// solo per le schermate di prova nel simulatore: --dart-define=PROVA_PALLAVOLO=true / PROVA_MAPPA_GOOGLE=true
+// solo per le schermate di prova nel simulatore: --dart-define=PROVA_PALLAVOLO=true
 const _provaPallavolo = bool.fromEnvironment('PROVA_PALLAVOLO');
-const _provaMappaGoogle = bool.fromEnvironment('PROVA_MAPPA_GOOGLE');
-// --dart-define=PROVA_DOCUMENTI=true apre «Regolamento e moduli»
+// --dart-define=PROVA_DOCUMENTI=true apre «Documenti»
 const _provaDocumenti = bool.fromEnvironment('PROVA_DOCUMENTI');
 // --dart-define=PROVA_RIONI=true apre la pagina «Rioni»
 const _provaRioni = bool.fromEnvironment('PROVA_RIONI');
@@ -54,10 +53,6 @@ class _HomeState extends State<Home> {
   void initState() {
     super.initState();
     _ciclo = AppLifecycleListener(onResume: Promemoria.aggiorna);
-    if (_provaMappaGoogle) {
-      WidgetsBinding.instance.addPostFrameCallback(
-          (_) => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PaginaMappa())));
-    }
     if (_provaRioni) {
       WidgetsBinding.instance.addPostFrameCallback(
           (_) => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PaginaRioni())));
@@ -74,16 +69,20 @@ class _HomeState extends State<Home> {
       valueListenable: schedaHome,
       builder: (context, scheda, _) => Scaffold(
         body: IndexedStack(index: scheda, children: _pagine),
-        bottomNavigationBar: MenuInBasso(
-          scelta: scheda,
-          onScegli: (i) => schedaHome.value = i,
-          voci: const [
-            VoceMenu('home', 'Home'),
-            VoceMenu('calendario_menu', 'Calendario'),
-            VoceMenu('classifica_menu', 'Classifica'),
-            VoceMenu('giochi_menu', 'Giochi'),
-            VoceMenu('gioco_pallavolo', 'Pallavolo'),
-          ],
+        // sulla Home il menu prende il blu notte della foto, sulle altre schede resta bianco
+        bottomNavigationBar: Theme(
+          data: scheda == 0 ? temaHome : Theme.of(context),
+          child: MenuInBasso(
+            scelta: scheda,
+            onScegli: (i) => schedaHome.value = i,
+            voci: const [
+              VoceMenu('home', 'Home'),
+              VoceMenu('calendario_menu', 'Calendario'),
+              VoceMenu('classifica_menu', 'Classifica'),
+              VoceMenu('giochi_menu', 'Giochi'),
+              VoceMenu('gioco_pallavolo', 'Pallavolo'),
+            ],
+          ),
         ),
       ),
     );

@@ -5,7 +5,7 @@ import '../api.dart';
 import '../models.dart';
 import '../widgets/comuni.dart';
 
-/// Pagina «Regolamento e moduli»: i documenti del portale nell'ordine scelto nel pannello. Un tocco sulla riga o
+/// Pagina «Documenti» (regolamento e moduli): i documenti del portale nell'ordine scelto nel pannello. Un tocco sulla riga o
 /// sull'icona di scaricamento apre il documento dentro l'app (il visore di Safari, da cui si salva o si condivide).
 // solo per le schermate di prova nel simulatore: --dart-define=PROVA_APRI_DOCUMENTO=true apre il primo documento
 const _provaApri = bool.fromEnvironment('PROVA_APRI_DOCUMENTO');
@@ -16,7 +16,7 @@ class PaginaDocumenti extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Regolamento e moduli')),
+      appBar: AppBar(title: const Text('Documenti')),
       body: DatiRemoti<List<Documento>>(
         carica: Api.instance.documenti,
         costruisci: (context, lista) {

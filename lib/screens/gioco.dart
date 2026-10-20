@@ -97,15 +97,22 @@ class _PaginaGiocoState extends State<PaginaGioco> {
     );
   }
 
-  // foto 16:9 del gioco in testa a ogni voce del menu; scorre via con il contenuto
-  Widget _testata(SchedaGioco g) => AspectRatio(
-        aspectRatio: 16 / 9,
-        child: Image.network(
-          Api.instance.fotoGioco(g),
-          fit: BoxFit.cover,
-          loadingBuilder: (context, figlio, avanzamento) =>
-              avanzamento == null ? figlio : ColoredBox(color: Theme.of(context).colorScheme.surfaceContainerHighest),
-          errorBuilder: (context, e, s) => const SizedBox.shrink(),
+  // foto 16:9 del gioco in testa a ogni voce del menu, in un riquadro con gli angoli arrotondati come le schede;
+  // scorre via con il contenuto
+  Widget _testata(SchedaGioco g) => Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: AspectRatio(
+            aspectRatio: 16 / 9,
+            child: Image.network(
+              Api.instance.fotoGioco(g),
+              fit: BoxFit.cover,
+              loadingBuilder: (context, figlio, avanzamento) =>
+                  avanzamento == null ? figlio : ColoredBox(color: Theme.of(context).colorScheme.surfaceContainerHighest),
+              errorBuilder: (context, e, s) => const SizedBox.shrink(),
+            ),
+          ),
         ),
       );
 

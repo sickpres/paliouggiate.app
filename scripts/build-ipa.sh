@@ -9,7 +9,7 @@
 set -uo pipefail
 export PATH="$HOME/flutter/bin:$PATH"
 
-NOME="Palio Uggiate"
+NOME="Il Palio dei Rioni"
 OUT="dist/PalioUggiate.ipa"
 
 if [ ! -f pubspec.yaml ] || [ ! -d ios ]; then

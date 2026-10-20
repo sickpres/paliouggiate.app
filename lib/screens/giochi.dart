@@ -4,8 +4,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../api.dart';
 import '../models.dart';
 import '../widgets/comuni.dart';
+import '../widgets/foto_gioco.dart';
 import '../widgets/griglia_mese.dart';
-import '../widgets/icone_tratto.dart';
 import 'gioco.dart';
 
 // --dart-define=PROVA_CERCA=testo scrive nel campo di ricerca; PROVA_GIOCO=id apre la pagina del gioco (schermate di prova)
@@ -167,6 +167,7 @@ class _PaginaGiochiState extends State<PaginaGiochi> {
   }
 }
 
+/// Gioco in una scheda come quelle del Calendario: foto a sinistra, poi quando, nome, chi gioca e lo stato dei risultati.
 class _RigaGioco extends StatelessWidget {
   final _Scheda s;
   const _RigaGioco(this.s);
@@ -175,26 +176,49 @@ class _RigaGioco extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = Theme.of(context);
     final g = s.risultati;
-    final quando = s.sessioni.isNotEmpty
+    // giorno breve («Dom 11 luglio · 21:30»), cosi' sta su una riga accanto alla foto
+    String breve(DateTime d) => '${giorni[d.weekday - 1].substring(0, 3)} ${d.day} ${mesi[d.month - 1]}';
+    final primo = s.sessioni.isNotEmpty ? s.sessioni.first : null;
+    final quando = primo != null
         ? (s.sessioni.length == 1
-            ? '${giornoLungo(s.sessioni.first.data)}, ore ${s.sessioni.first.ora}'
-            : '${s.sessioni.length} appuntamenti, dal ${giornoLungo(s.sessioni.first.data).toLowerCase()}')
+            ? [breve(primo.data), if (primo.ora.isNotEmpty) primo.ora].join(' · ')
+            : '${s.sessioni.length} appuntamenti dal ${breve(primo.data)}')
         : intervallo(g?.dataInizio, g?.dataFine);
     return Card(
       clipBehavior: Clip.antiAlias,
-      child: ListTile(
-        contentPadding: const EdgeInsets.fromLTRB(16, 6, 8, 6),
+      child: InkWell(
         onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => PaginaGioco(id: s.id, nome: s.nome, tipo: s.tipo))),
-        leading: CircleAvatar(
-          backgroundColor: g != null ? t.colorScheme.primaryContainer : t.colorScheme.surfaceContainerHighest,
-          child: IconaGioco(s.tipo, lato: 22, colore: g != null ? t.colorScheme.onPrimaryContainer : t.colorScheme.onSurfaceVariant),
+        child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: Row(children: [
+            FotoGioco(giocoId: s.id, tipo: s.tipo),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                if (quando.isNotEmpty) Text(quando, style: t.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w800)),
+                Text(s.nome, style: t.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800, height: 1.2)),
+                if (s.chi.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(s.chi, style: t.textTheme.bodyMedium?.copyWith(color: t.colorScheme.onSurfaceVariant)),
+                  ),
+                if (g != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(color: t.colorScheme.secondaryContainer, borderRadius: BorderRadius.circular(8)),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        child: Text(g.parziale ? 'In corso' : 'Risultati',
+                            style: t.textTheme.labelMedium?.copyWith(color: t.colorScheme.onSecondaryContainer, fontWeight: FontWeight.w700)),
+                      ),
+                    ),
+                  ),
+              ]),
+            ),
+            Icon(Icons.chevron_right, color: t.colorScheme.onSurfaceVariant),
+          ]),
         ),
-        title: Text(s.nome, style: t.textTheme.titleMedium),
-        subtitle: Text([quando, if (s.chi.isNotEmpty) s.chi].where((x) => x.isNotEmpty).join(' · ')),
-        trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-          if (g != null) Chip(label: Text(g.parziale ? 'In corso' : 'Risultati'), visualDensity: VisualDensity.compact),
-          const Icon(Icons.chevron_right),
-        ]),
       ),
     );
   }
