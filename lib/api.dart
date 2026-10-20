@@ -76,8 +76,6 @@ class Api {
 
   Future<SchedaGioco> gioco(int id) async => SchedaGioco.fromJson(_mappa(await _get('giochi/$id')));
 
-  Future<ConfigMappa> mappa() async => ConfigMappa.fromJson(_mappa(await _get('mappa')));
-
   Future<List<Documento>> documenti() async => _lista(await _get('documenti')).map(Documento.fromJson).toList();
 
   Future<List<Sponsor>> sponsor() async => _lista(await _get('sponsor')).map(Sponsor.fromJson).toList();

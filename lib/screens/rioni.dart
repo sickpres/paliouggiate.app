@@ -2,18 +2,13 @@ import 'package:flutter/material.dart';
 
 import '../models.dart';
 import '../widgets/comuni.dart';
-import '../widgets/icone_tratto.dart';
 import '../widgets/mappa.dart';
-import 'mappa.dart';
 
-// solo per le schermate di prova nel simulatore: --dart-define=PROVA_RIONE_MAPPA=Somoca apre la pagina con quel rione
-// scelto, --dart-define=PROVA_MAPPA_GOOGLE=true con la mappa interattiva
+// solo per le schermate di prova nel simulatore: --dart-define=PROVA_RIONE_MAPPA=Somoca apre la pagina con quel rione scelto
 const _provaRione = String.fromEnvironment('PROVA_RIONE_MAPPA');
-const _provaGoogle = bool.fromEnvironment('PROVA_MAPPA_GOOGLE');
 
-/// Pagina «Rioni» (dal riquadro della Home): in alto la mappa dei rioni, disegnata oppure interattiva (Google Maps,
-/// con il pulsante «Mappa» in alto a destra), sotto la scheda del rione scelto e la legenda. Il rione si sceglie
-/// sulla mappa o nella legenda, e resta scelto passando da una mappa all'altra.
+/// Pagina «Rioni» (dal riquadro della Home): in alto la mappa disegnata dei rioni, sotto la scheda del rione scelto
+/// oppure, senza rione scelto, la legenda. Il rione si sceglie sulla mappa o nella legenda.
 class PaginaRioni extends StatefulWidget {
   const PaginaRioni({super.key});
 
@@ -23,34 +18,14 @@ class PaginaRioni extends StatefulWidget {
 
 class _PaginaRioniState extends State<PaginaRioni> {
   String? _scelto = _provaRione.isEmpty ? null : _provaRione;
-  bool _interattiva = _provaGoogle;
   late final Future<List<Rione>> _rioni = rioniInCache();
 
   void _scegli(String? nome) => setState(() => _scelto = nome);
 
   @override
   Widget build(BuildContext context) {
-    // la mappa interattiva occupa poco meno di meta' dello schermo, senza scendere sotto i 300 punti
-    final altezzaGoogle = (MediaQuery.sizeOf(context).height * 0.45).clamp(300.0, 460.0);
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Rioni'),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: IconButton(
-              tooltip: _interattiva ? 'Mostra la mappa disegnata' : 'Mostra la mappa interattiva',
-              isSelected: _interattiva,
-              onPressed: () => setState(() => _interattiva = !_interattiva),
-              icon: const IconaTratto('mappa', lato: 24),
-              style: IconButton.styleFrom(
-                backgroundColor: _interattiva ? Theme.of(context).colorScheme.primary : null,
-                foregroundColor: _interattiva ? Theme.of(context).colorScheme.onPrimary : null,
-              ),
-            ),
-          ),
-        ],
-      ),
+      appBar: AppBar(title: const Text('Rioni')),
       body: FutureBuilder<List<Rione>>(
         future: _rioni,
         builder: (context, s) {
@@ -64,9 +39,7 @@ class _PaginaRioniState extends State<PaginaRioni> {
                   borderRadius: BorderRadius.circular(20),
                   child: Semantics(
                     label: 'Mappa dei rioni di Uggiate con Ronago',
-                    child: _interattiva
-                        ? SizedBox(height: altezzaGoogle, child: MappaRioniGoogle(scelto: _scelto, onScegli: _scegli))
-                        : MappaDisegnata(rioni: rioni, scelto: _scelto, onScegli: _scegli),
+                    child: MappaDisegnata(rioni: rioni, scelto: _scelto, onScegli: _scegli),
                   ),
                 ),
               ),

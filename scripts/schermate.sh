@@ -10,7 +10,7 @@ set -uo pipefail
 export PATH="$HOME/flutter/bin:$PATH"
 cd "$(dirname "$0")/.."
 SIM="${SIM:-iPhone 17 Pro}"
-ID=it.uggiateconronago.palioUggiate
+ID=it.uggiateconronago.palio
 ATTESA="${ATTESA:-8}"
 mkdir -p ~/schermate
 

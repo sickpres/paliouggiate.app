@@ -1,7 +1,7 @@
 name: palio_uggiate
 description: "Palio Uggiate con Ronago: calendario, classifiche, giochi e sponsor del Palio dei rioni."
 publish_to: 'none'
-version: 0.1.0+1
+version: 1.0.0+2
 
 environment:
   sdk: ">=3.5.0 <4.0.0"
@@ -17,9 +17,6 @@ dependencies:
   timezone: ^0.10.0
   url_launcher: ^6.3.1
   flutter_svg: ^2.0.10
-  google_maps_flutter: ^2.19.0
-  # Google Maps SDK 10 per iOS: installabile con Swift Package Manager (senza CocoaPods)
-  google_maps_flutter_ios_sdk10: ^2.19.0
 
 dev_dependencies:
   flutter_test:
