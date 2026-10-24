@@ -88,6 +88,10 @@ class _SfondiState extends State<_Sfondi> {
   late List<String> _giro = _mescola(null);
   int _i = 0;
   Timer? _orologio;
+  // misure dello schermo e configurazione delle immagini, lette solo in didChangeDependencies: il timer non deve
+  // consultare il contesto (con la pagina staccata dall'albero, per esempio con l'app in secondo piano, non si puo')
+  int? _larghezza;
+  ImageConfiguration _configurazione = ImageConfiguration.empty;
 
   // nuovo giro casuale; la prima foto non e' l'ultima del giro precedente
   List<String> _mescola(String? ultima) {
@@ -116,7 +120,15 @@ class _SfondiState extends State<_Sfondi> {
       }
     });
     // la foto dopo si decodifica in anticipo, cosi' la dissolvenza non aspetta il caricamento
-    if (mounted) precacheImage(_immagine(_prossima).image, context);
+    _prepara();
+  }
+
+  // come precacheImage, ma senza contesto: si ascolta l'immagine finche' e' pronta, cosi' resta nella cache
+  void _prepara() {
+    final flusso = _immagine(_prossima).image.resolve(_configurazione);
+    late final ImageStreamListener ascolto;
+    ascolto = ImageStreamListener((_, __) => flusso.removeListener(ascolto), onError: (_, __) => flusso.removeListener(ascolto));
+    flusso.addListener(ascolto);
   }
 
   Image _immagine(String percorso) => Image.asset(
@@ -124,7 +136,7 @@ class _SfondiState extends State<_Sfondi> {
         key: ValueKey(percorso),
         fit: BoxFit.cover,
         alignment: Alignment.topCenter,
-        cacheWidth: (MediaQuery.sizeOf(context).width * MediaQuery.devicePixelRatioOf(context)).round(),
+        cacheWidth: _larghezza,
         excludeFromSemantics: true,
         gaplessPlayback: true,
       );
@@ -132,7 +144,11 @@ class _SfondiState extends State<_Sfondi> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    precacheImage(_immagine(_prossima).image, context);
+    // a volte (es. app in secondo piano) la larghezza e' zero: allora si tiene quella di prima
+    final larga = (MediaQuery.sizeOf(context).width * MediaQuery.devicePixelRatioOf(context)).round();
+    if (larga > 0) _larghezza = larga;
+    _configurazione = createLocalImageConfiguration(context);
+    _prepara();
   }
 
   @override
