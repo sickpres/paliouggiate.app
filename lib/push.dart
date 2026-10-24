@@ -65,8 +65,6 @@ class Push {
         }
       }
       await fcm.subscribeToTopic(_argomento);
-      // solo nelle prove: il token per mandare una notifica a questo telefono soltanto
-      if (kDebugMode) debugPrint('push: token ${await fcm.getToken()}');
       // con l'app aperta Android non mostra la notifica da solo
       FirebaseMessaging.onMessage.listen((m) {
         final n = m.notification;
