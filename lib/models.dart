@@ -27,7 +27,8 @@ class Rione {
   final String logoVersione;
   final bool haSimbolo; // foto «simbolo» 16:9 caricata dal pannello
   final String simboloVersione;
-  Rione({required this.id, required this.nome, required this.colore, this.descrizione = '', this.capoRione = '', required this.haLogo, required this.logoVersione, this.haSimbolo = false, this.simboloVersione = ''});
+  final String whatsapp; // link del gruppo WhatsApp del rione (dal pannello), vuoto se non c'e'
+  Rione({required this.id, required this.nome, required this.colore, this.descrizione = '', this.capoRione = '', required this.haLogo, required this.logoVersione, this.haSimbolo = false, this.simboloVersione = '', this.whatsapp = ''});
 
   factory Rione.fromJson(Map<String, dynamic> j) => Rione(
         id: _i(j['id']),
@@ -39,6 +40,7 @@ class Rione {
         logoVersione: _s(j['logo_versione']),
         haSimbolo: j['ha_simbolo'] == true,
         simboloVersione: _s(j['simbolo_versione']),
+        whatsapp: _s(j['whatsapp']),
       );
 }
 
@@ -52,6 +54,7 @@ class Voce {
   final String ora;
   final String chi;
   final String luogo;
+  final String luogoPioggia; // dove si fa se piove, vuoto se non indicato
   final String note;
   // categoria d'eta' del gioco dal portale: 'tutti' | 'adulti' (adulti e ragazzi) | 'bambini' | 'anziani'; vuota per gli eventi
   final String categoria;
@@ -64,6 +67,7 @@ class Voce {
     required this.ora,
     required this.chi,
     required this.luogo,
+    this.luogoPioggia = '',
     required this.note,
     this.categoria = '',
   });
@@ -79,9 +83,18 @@ class Voce {
         ora: _s(j['ora']),
         chi: _s(j['chi']),
         luogo: _s(j['luogo']),
+        luogoPioggia: _s(j['luogo_pioggia']),
         note: _s(j['note']),
         categoria: _s(j['categoria']),
       );
+}
+
+/// Punti assegnati a mano a un rione (pagina «Punteggi manuali» del pannello), con il motivo.
+class PuntiManuali {
+  final int punti;
+  final String motivo;
+  final DateTime? data;
+  PuntiManuali(this.punti, this.motivo, this.data);
 }
 
 class RigaClassifica {
@@ -89,14 +102,32 @@ class RigaClassifica {
   final String nome;
   final String colore;
   final int punti;
-  final Map<int, int> perGioco;
-  RigaClassifica({required this.id, required this.nome, required this.colore, required this.punti, required this.perGioco});
+  final Map<int, int> perGioco; // punti del Palio in ogni gioco pubblicato
+  final Map<int, int> posizioni; // posizione del rione in ogni gioco pubblicato
+  final List<PuntiManuali> manuali;
+  RigaClassifica({required this.id, required this.nome, required this.colore, required this.punti, required this.perGioco,
+      this.posizioni = const {}, this.manuali = const []});
+
+  bool get haDettaglio => perGioco.isNotEmpty || manuali.isNotEmpty;
 
   factory RigaClassifica.fromJson(Map<String, dynamic> j) {
-    final pg = <int, int>{};
-    final raw = j['per_gioco'];
-    if (raw is Map) raw.forEach((k, v) => pg[_i(k)] = _i(v));
-    return RigaClassifica(id: _i(j['id']), nome: _s(j['nome']), colore: _s(j['colore']), punti: _i(j['punti']), perGioco: pg);
+    Map<int, int> mappa(dynamic raw) {
+      final m = <int, int>{};
+      if (raw is Map) raw.forEach((k, v) => m[_i(k)] = _i(v));
+      return m;
+    }
+
+    return RigaClassifica(
+      id: _i(j['id']),
+      nome: _s(j['nome']),
+      colore: _s(j['colore']),
+      punti: _i(j['punti']),
+      perGioco: mappa(j['per_gioco']),
+      posizioni: mappa(j['posizioni']),
+      manuali: [
+        for (final x in (j['manuali'] as List? ?? const [])) PuntiManuali(_i(x['punti']), _s(x['motivo']), DateTime.tryParse(_s(x['data'])))
+      ],
+    );
   }
 }
 
@@ -285,17 +316,19 @@ class Partita {
 class CalendarioPartite {
   final String nome;
   final String luogo;
+  final String luogoPioggia;
   final String chi;
   final bool arbitri;
   final int mancanti; // partite ancora da giocare
   final List<Partita> partite;
-  CalendarioPartite({required this.nome, required this.luogo, required this.chi, required this.arbitri, required this.mancanti, required this.partite});
+  CalendarioPartite({required this.nome, required this.luogo, this.luogoPioggia = '', required this.chi, required this.arbitri, required this.mancanti, required this.partite});
 
   factory CalendarioPartite.fromJson(Map<String, dynamic> j) {
     final g = j['gioco'] is Map ? Map<String, dynamic>.from(j['gioco'] as Map) : const <String, dynamic>{};
     return CalendarioPartite(
       nome: _s(g['nome']),
       luogo: _s(g['luogo']),
+      luogoPioggia: _s(g['luogo_pioggia']),
       chi: _s(g['chi']),
       arbitri: j['arbitri'] == true,
       mancanti: _i(j['mancanti']),
@@ -380,6 +413,7 @@ class SchedaGioco {
   final String nome;
   final String chi;
   final String luogo;
+  final String luogoPioggia;
   final String regolamento; // HTML dell'editor del pannello oppure testo semplice
   final String criteri;
   final List<int> puntiPosizioni;
@@ -394,6 +428,7 @@ class SchedaGioco {
     required this.nome,
     required this.chi,
     required this.luogo,
+    this.luogoPioggia = '',
     required this.regolamento,
     required this.criteri,
     required this.puntiPosizioni,
@@ -412,6 +447,7 @@ class SchedaGioco {
       nome: _s(j['nome']),
       chi: _s(j['chi']),
       luogo: _s(j['luogo']),
+      luogoPioggia: _s(j['luogo_pioggia']),
       regolamento: _s(j['regolamento']),
       criteri: _s(j['criteri']),
       puntiPosizioni: [for (final x in (j['punti_posizioni'] as List? ?? const [])) _i(x)],

@@ -122,7 +122,11 @@ class _PaginaGiocoState extends State<PaginaGioco> {
       if (g.chi.isNotEmpty || g.luogo.isNotEmpty)
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-          child: Text([if (g.chi.isNotEmpty) 'Per chi: ${g.chi}', if (g.luogo.isNotEmpty) 'Dove: ${g.luogo}'].join('\n'),
+          child: Text([
+            if (g.chi.isNotEmpty) 'Per chi: ${g.chi}',
+            if (g.luogo.isNotEmpty) 'Dove: ${g.luogo}',
+            if (g.luogoPioggia.isNotEmpty) 'Se piove: ${g.luogoPioggia}',
+          ].join('\n'),
               style: t.textTheme.bodyLarge),
         ),
       if (g.haPartite && g.tipo == 'pallavolo')

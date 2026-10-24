@@ -109,7 +109,7 @@ class _PaginaPallavoloState extends State<PaginaPallavolo> {
     final nome = sel == null ? null : _rioni.firstWhere((r) => r.id == sel).nome;
     return Scaffold(
       appBar: AppBar(
-        title: Text(nome == null ? 'Pallavolo' : 'Pallavolo • $nome'),
+        title: TitoloConFiltro('Pallavolo', nome),
         actions: [
           BottoneFiltra(attivo: sel != null, onPressed: _filtra),
           IconButton(
@@ -141,7 +141,7 @@ class _PaginaPallavoloState extends State<PaginaPallavolo> {
     final partite = sel == null ? d.cal.partite : d.cal.partite.where((p) => p.gioca(sel)).toList();
     final righe = <Widget>[const SizedBox(height: 8)];
 
-    final info = [d.cal.chi, d.cal.luogo].where((s) => s.isNotEmpty).join(' · ');
+    final info = [d.cal.chi, d.cal.luogo, if (d.cal.luogoPioggia.isNotEmpty) 'se piove: ${d.cal.luogoPioggia}'].where((s) => s.isNotEmpty).join(' · ');
     final giocate = d.cal.partite.where((p) => p.risultato.isNotEmpty).length;
     if (giocate > 0) {
       righe.add(Card(

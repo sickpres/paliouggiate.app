@@ -88,7 +88,7 @@ class GrigliaMese extends StatelessWidget {
       Padding(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
         child: Text('${mesi[mese.month - 1][0].toUpperCase()}${mesi[mese.month - 1].substring(1)} ${mese.year}',
-            style: t.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w800)),
+            style: t.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
       ),
       Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -158,9 +158,37 @@ const provaEta = String.fromEnvironment('PROVA_ETA');
 String? get etaIniziale => provaEta.isEmpty ? null : provaEta;
 
 /// Titolo della pagina con il filtro scelto dopo il pallino, come il rione nella Pallavolo: «Giochi • Bambini».
-String titoloConEta(String titolo, String? eta) {
+/// Nome della fascia d'eta' scelta nel filtro, null senza filtro.
+String? etichettaEta(String? eta) {
   final o = opzioniEta.where((o) => o.valore != null && o.valore == eta);
-  return o.isEmpty ? titolo : '$titolo • ${o.first.etichetta}';
+  return o.isEmpty ? null : o.first.etichetta;
+}
+
+/// Titolo della barra in alto con il filtro attivo accanto, come etichetta colorata e piccola (calendario, pallavolo).
+class TitoloConFiltro extends StatelessWidget {
+  final String titolo;
+  final String? filtro;
+  const TitoloConFiltro(this.titolo, this.filtro, {super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context);
+    if (filtro == null) return Text(titolo);
+    return Row(mainAxisSize: MainAxisSize.min, children: [
+      Text(titolo),
+      const SizedBox(width: 10),
+      Flexible(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(color: t.colorScheme.secondaryContainer, borderRadius: BorderRadius.circular(20)),
+          child: Text(filtro!,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: t.textTheme.labelMedium?.copyWith(color: t.colorScheme.onSecondaryContainer, fontWeight: FontWeight.w700)),
+        ),
+      ),
+    ]);
+  }
 }
 
 /// Un gioco della [categoria] va bene per l'[eta] scelta? Con un'eta' scelta solo i giochi di quella categoria:

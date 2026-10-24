@@ -1,12 +1,14 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../api.dart';
 import '../models.dart';
 import 'comuni.dart';
 
-/// Scheda di un rione: stemma, nome, descrizione, capo rione e la foto «simbolo» se c'e'.
+/// Scheda di un rione: stemma, nome, descrizione, capo rione, «Unisciti a noi» (gruppo WhatsApp) e la foto «simbolo» se c'e'.
 class SchedaRione extends StatelessWidget {
   final String nome;
   final List<Rione> rioni;
@@ -33,6 +35,18 @@ class SchedaRione extends StatelessWidget {
                 text: r != null && r.capoRione.isNotEmpty ? r.capoRione : 'da definire',
                 style: const TextStyle(fontWeight: FontWeight.w700)),
           ])),
+          if (r != null && r.whatsapp.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: () => unisciti(context, r),
+                  icon: const Icon(Icons.groups),
+                  label: const Text('Unisciti a noi'),
+                ),
+              ),
+            ),
           if (r != null && r.haSimbolo)
             Padding(
               padding: const EdgeInsets.only(top: 12),
@@ -53,6 +67,25 @@ class SchedaRione extends StatelessWidget {
         ]),
       ),
     );
+  }
+}
+
+const _testoUnisciti = 'Vorrei partecipare al Palio';
+
+/// «Unisciti a noi»: apre il gruppo WhatsApp del rione. Un link a un numero (wa.me) porta gia' il messaggio;
+/// i link d'invito ai gruppi non accettano un testo: si copia negli appunti, da incollare nel gruppo.
+Future<void> unisciti(BuildContext context, Rione r) async {
+  final uri = Uri.tryParse(r.whatsapp);
+  if (uri == null) return;
+  final numero = uri.host == 'wa.me' || uri.host == 'api.whatsapp.com';
+  final dove = numero ? uri.replace(queryParameters: {...uri.queryParameters, 'text': _testoUnisciti}) : uri;
+  final messaggi = ScaffoldMessenger.of(context);
+  if (!numero) {
+    await Clipboard.setData(const ClipboardData(text: _testoUnisciti));
+    messaggi.showSnackBar(const SnackBar(content: Text('Messaggio copiato: incollalo nel gruppo («$_testoUnisciti»)')));
+  }
+  if (!await launchUrl(dove, mode: LaunchMode.externalApplication)) {
+    messaggi.showSnackBar(const SnackBar(content: Text('Non riesco ad aprire WhatsApp')));
   }
 }
 

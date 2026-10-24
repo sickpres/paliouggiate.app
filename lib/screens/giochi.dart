@@ -107,7 +107,7 @@ class _PaginaGiochiState extends State<PaginaGiochi> {
     final t = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: Text(titoloConEta('Giochi', _filtro)),
+        title: TitoloConFiltro('Giochi', etichettaEta(_filtro)),
         actions: [
           BottoneFiltra(attivo: _filtro != null, onPressed: _filtra),
           const SizedBox(width: 4),

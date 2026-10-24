@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:video_player/video_player.dart';
 
 import '../api.dart';
 import '../models.dart';
@@ -25,9 +26,7 @@ class _Dati {
 
 Future<_Dati> _carica() async {
   // la telecronaca e' un di piu': se non arriva la Home si mostra lo stesso
-  final tele = _provaTelecronaca.isNotEmpty
-      ? Future.value(Telecronaca(_provaTelecronaca, DateTime.now()))
-      : Api.instance.telecronaca().catchError((_) => null);
+  final tele = _provaTelecronaca.isNotEmpty ? Future.value(Telecronaca(_provaTelecronaca, DateTime.now())) : Api.instance.telecronaca().catchError((_) => null);
   final r = await Future.wait<Object?>([Api.instance.edizione(), tele]);
   return _Dati(r[0] as Edizione, r[1] as Telecronaca?);
 }
@@ -199,18 +198,26 @@ class _Copertina extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // la scritta del Palio, come un marchio
-                Semantics(
-                  label: 'Il Palio, Uggiate con Ronago',
-                  excludeSemantics: true,
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text('IL PALIO',
-                        style: t.textTheme.displaySmall?.copyWith(color: Colors.white, height: 1.0, fontSize: 58, shadows: ombra)),
-                    Text('UGGIATE CON RONAGO',
-                        style: t.textTheme.titleMedium?.copyWith(
-                            fontFamily: fontTitoli, color: Colors.white, fontWeight: FontWeight.w600, fontSize: 22, letterSpacing: 3, shadows: ombra)),
-                  ]),
-                ),
+                // la scritta del Palio, come un marchio, e a destra i social
+                Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Expanded(
+                      child: Semantics(
+                    label: 'Il Palio, Uggiate con Ronago',
+                    excludeSemantics: true,
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text('IL PALIO', style: t.textTheme.displaySmall?.copyWith(color: Colors.white, height: 1.0, fontSize: 58, shadows: ombra)),
+                      Text('UGGIATE CON RONAGO',
+                          style: t.textTheme.titleMedium?.copyWith(
+                              fontFamily: fontTitoli, color: Colors.white, fontWeight: FontWeight.w600, fontSize: 22, letterSpacing: 3, shadows: ombra)),
+                    ]),
+                  )),
+                  IconButton(
+                    tooltip: 'Seguici sui social',
+                    padding: const EdgeInsets.all(12),
+                    onPressed: () => _foglio(context, 'Seguici sui social', const _ElencoSocial()),
+                    icon: const IconaTratto('social_menu', lato: 28, colore: Colors.white, spessore: 2),
+                  ),
+                ]),
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   const SizedBox(height: 32),
                   // il motto del Palio: la prima parola bianca, le altre in oro chiaro
@@ -220,8 +227,8 @@ class _Copertina extends StatelessWidget {
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       for (final (parola, colore) in const [('Tradizione', Colors.white), ('Gioco', oroChiaro), ('Comunità', oroChiaro)])
                         Text(parola,
-                            style: t.textTheme.displaySmall?.copyWith(
-                                fontFamily: fontTitoli, color: colore, height: 1.0, fontSize: 42, letterSpacing: 0, shadows: ombra)),
+                            style: t.textTheme.displaySmall
+                                ?.copyWith(fontFamily: fontTitoli, color: colore, height: 1.0, fontSize: 42, letterSpacing: 0, shadows: ombra)),
                     ]),
                   ),
                   const SizedBox(height: 14),
@@ -229,17 +236,41 @@ class _Copertina extends StatelessWidget {
                   Text(date.isNotEmpty ? date : edizione.nome,
                       style: t.textTheme.displaySmall?.copyWith(color: Colors.white, height: 1.1, fontSize: 26, shadows: ombra)),
                   const SizedBox(height: 22),
+                  // due pulsanti affiancati: il programma (scheda Calendario) e «Partecipa» (scelta del rione, con il suo gruppo WhatsApp)
                   SizedBox(
-                    width: double.infinity,
                     height: 54,
-                    child: FilledButton(
-                      onPressed: () => schedaHome.value = 1,
-                      child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                        Text('Scopri il programma'),
-                        SizedBox(width: 10),
-                        Icon(Icons.arrow_forward, size: 22),
-                      ]),
-                    ),
+                    child: Row(children: [
+                      Expanded(
+                        flex: 3,
+                        child: FilledButton(
+                          style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(54), padding: const EdgeInsets.symmetric(horizontal: 12)),
+                          onPressed: () => schedaHome.value = 1,
+                          child: const FittedBox(
+                            child: Row(mainAxisSize: MainAxisSize.min, children: [
+                              Text('Scopri il programma'),
+                              SizedBox(width: 8),
+                              Icon(Icons.arrow_forward, size: 22),
+                            ]),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        flex: 2,
+                        child: OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size.fromHeight(54),
+                            foregroundColor: Colors.white,
+                            side: const BorderSide(color: Colors.white, width: 1.5),
+                            shape: const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(14))),
+                            textStyle: const TextStyle(fontFamily: fontTitoli, fontSize: 19, fontWeight: FontWeight.w700), // come «Scopri il programma»
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                          ),
+                          onPressed: () => _apri(context, const PaginaRioni(titolo: 'Seleziona il tuo rione')),
+                          child: const FittedBox(child: Text('Partecipa')),
+                        ),
+                      ),
+                    ]),
                   ),
                   const SizedBox(height: 16),
                   Row(children: [
@@ -249,7 +280,7 @@ class _Copertina extends StatelessWidget {
                     const SizedBox(width: 10),
                     _Scorciatoia('documenti', 'Documenti', () => _apri(context, const PaginaDocumenti())),
                     const SizedBox(width: 10),
-                    _Scorciatoia('social_menu', 'Social', () => _foglio(context, 'Seguici sui social', const _ElencoSocial())),
+                    _Scorciatoia('ricordi', 'Ricordi', () => _foglio(context, 'Ricordi', const _Ricordi())),
                   ]),
                 ]),
               ],
@@ -303,7 +334,92 @@ class _Diretta extends StatelessWidget {
   }
 }
 
-/// «Social»: le pagine Facebook e Instagram del Palio.
+/// «Ricordi»: il filmato storico del Palio (nell'app, si vede anche senza rete). Parte da solo; un tocco lo ferma o lo riprende.
+class _Ricordi extends StatefulWidget {
+  const _Ricordi();
+
+  @override
+  State<_Ricordi> createState() => _RicordiState();
+}
+
+class _RicordiState extends State<_Ricordi> {
+  final _video = VideoPlayerController.asset('assets/ricordi.mp4');
+
+  @override
+  void initState() {
+    super.initState();
+    _video.initialize().then((_) {
+      if (!mounted) return;
+      setState(() {});
+      _video.play();
+    });
+    _video.addListener(_aggiorna);
+  }
+
+  void _aggiorna() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _video.removeListener(_aggiorna);
+    _video.dispose();
+    super.dispose();
+  }
+
+  void _tocca() {
+    final v = _video.value;
+    if (v.isPlaying) {
+      _video.pause();
+    } else {
+      if (v.position >= v.duration) _video.seekTo(Duration.zero); // finito: si rivede da capo
+      _video.play();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final v = _video.value;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(14),
+          child: AspectRatio(
+            aspectRatio: v.isInitialized ? v.aspectRatio : 4 / 3,
+            child: !v.isInitialized
+                ? const ColoredBox(color: Colors.black, child: Center(child: CircularProgressIndicator()))
+                : Semantics(
+                    button: true,
+                    label: v.isPlaying ? 'Metti in pausa il filmato' : 'Guarda il filmato',
+                    child: GestureDetector(
+                      onTap: _tocca,
+                      child: Stack(fit: StackFit.expand, children: [
+                        VideoPlayer(_video),
+                        if (!v.isPlaying)
+                          const ColoredBox(
+                            color: Color(0x66000000),
+                            child: Center(child: Icon(Icons.play_circle_fill, size: 72, color: Colors.white)),
+                          ),
+                        Align(
+                          alignment: Alignment.bottomCenter,
+                          child: VideoProgressIndicator(_video,
+                              allowScrubbing: true,
+                              colors: const VideoProgressColors(playedColor: oro, bufferedColor: Colors.white38, backgroundColor: Colors.white24)),
+                        ),
+                      ]),
+                    ),
+                  ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Text('Immagini delle edizioni passate del Palio dei rioni.', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white70)),
+      ]),
+    );
+  }
+}
+
+/// «Social»: le pagine Facebook e Instagram del Palio (pulsante in alto a destra nella Home).
 class _ElencoSocial extends StatelessWidget {
   const _ElencoSocial();
 
@@ -367,8 +483,7 @@ class _Marchio extends StatelessWidget {
 const _canali = [
   _Canale('Palio dei Rioni di Uggiate con Ronago', 'Facebook', 'https://www.facebook.com/profile.php?id=61589423978361&locale=it_IT',
       _Marchio('assets/facebook.png')),
-  _Canale('@palio.uggiateconronago', 'Instagram', 'https://www.instagram.com/palio.uggiateconronago/',
-      _Marchio('assets/instagram.png')),
+  _Canale('@palio.uggiateconronago', 'Instagram', 'https://www.instagram.com/palio.uggiateconronago/', _Marchio('assets/instagram.png')),
 ];
 
 /// Pagina social del Palio: con l'app Facebook o Instagram installata il link si apre li', altrimenti nel browser.
@@ -422,8 +537,7 @@ class _SchedaTelecronaca extends StatelessWidget {
           Row(children: [
             const Icon(Icons.mic, size: 20, color: oro),
             const SizedBox(width: 8),
-            Text('IL PALIO IN DIRETTA',
-                style: t.textTheme.labelLarge?.copyWith(color: oro, letterSpacing: 1.2, fontWeight: FontWeight.w800)),
+            Text('IL PALIO IN DIRETTA', style: t.textTheme.labelLarge?.copyWith(color: oro, letterSpacing: 1.2, fontWeight: FontWeight.w800)),
           ]),
           const SizedBox(height: 8),
           Text(tc.testo, style: t.textTheme.bodyLarge?.copyWith(color: Colors.white, height: 1.4)),

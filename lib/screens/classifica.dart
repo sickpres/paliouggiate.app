@@ -87,29 +87,32 @@ class _Generale extends StatelessWidget {
       physics: const AlwaysScrollableScrollPhysics(),
       children: [
         Sezione(d.edizione.nome.isEmpty ? 'Classifica generale' : 'Classifica generale · ${d.edizione.nome}'),
-        // come l'albo d'oro: un'unica scheda con una riga per rione; toccando una riga si vedono i punti per gioco
+        // come l'albo d'oro: un'unica scheda con una riga per rione; toccando una riga si vedono i punti
+        // di ogni gioco (con la posizione) e quelli assegnati a mano, con il motivo
         Card(
           clipBehavior: Clip.antiAlias,
           child: Theme(
             data: t.copyWith(dividerColor: Colors.transparent),
             child: Column(children: [
               for (var i = 0; i < c.righe.length; i++)
-                // senza punti per gioco una riga semplice, come nell'albo d'oro; con i punti si apre al tocco
-                if (c.righe[i].perGioco.isEmpty)
+                // senza punti una riga semplice, come nell'albo d'oro; con i punti si apre al tocco
+                if (!c.righe[i].haDettaglio)
                   ListTile(leading: _inizio(t, c, pos, i), title: Text(c.righe[i].nome), trailing: _punti(t, c.righe[i].punti))
                 else
                   ExpansionTile(
                     leading: _inizio(t, c, pos, i),
                     title: Text(c.righe[i].nome),
                     trailing: _punti(t, c.righe[i].punti),
+                    childrenPadding: const EdgeInsets.only(bottom: 8),
                     children: [
+                      if (c.righe[i].perGioco.isNotEmpty) _titoletto(t, 'Gare'),
                       for (final e in c.righe[i].perGioco.entries)
-                        ListTile(
-                          dense: true,
-                          contentPadding: const EdgeInsets.fromLTRB(108, 0, 24, 0),
-                          title: Text(nomiGiochi[e.key] ?? 'Altri punti'),
-                          trailing: Text('${e.value}'),
-                        ),
+                        _voce(t, nomiGiochi[e.key] ?? 'Gioco',
+                            c.righe[i].posizioni[e.key] == null ? null : '${c.righe[i].posizioni[e.key]}° posto', e.value),
+                      if (c.righe[i].manuali.isNotEmpty) _titoletto(t, 'Altri punti'),
+                      for (final m in c.righe[i].manuali)
+                        _voce(t, m.motivo.isEmpty ? 'Punti assegnati' : m.motivo,
+                            m.data == null ? null : '${m.data!.day.toString().padLeft(2, '0')}.${m.data!.month.toString().padLeft(2, '0')}.${m.data!.year}', m.punti),
                     ],
                   ),
             ]),
@@ -137,6 +140,24 @@ class _Generale extends StatelessWidget {
       );
 
   Widget _punti(ThemeData t, int punti) => Text('$punti', style: t.textTheme.titleMedium);
+
+  Widget _titoletto(ThemeData t, String testo) => Padding(
+        padding: const EdgeInsets.fromLTRB(108, 6, 24, 2),
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: Text(testo.toUpperCase(),
+              style: t.textTheme.labelSmall?.copyWith(color: t.colorScheme.onSurfaceVariant, fontWeight: FontWeight.w700, letterSpacing: 0.8)),
+        ),
+      );
+
+  // una gara (con la posizione) o dei punti assegnati a mano (con la data); i punti con il segno
+  Widget _voce(ThemeData t, String titolo, String? sotto, int punti) => ListTile(
+        dense: true,
+        contentPadding: const EdgeInsets.fromLTRB(108, 0, 24, 0),
+        title: Text(titolo),
+        subtitle: sotto == null ? null : Text(sotto),
+        trailing: Text(punti > 0 ? '+$punti' : '$punti', style: t.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+      );
 
   Rione? _rione(int id) {
     for (final r in d.rioni) {

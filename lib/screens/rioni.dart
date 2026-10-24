@@ -9,8 +9,10 @@ const _provaRione = String.fromEnvironment('PROVA_RIONE_MAPPA');
 
 /// Pagina «Rioni» (dal riquadro della Home): in alto la mappa disegnata dei rioni, sotto la scheda del rione scelto
 /// oppure, senza rione scelto, la legenda. Il rione si sceglie sulla mappa o nella legenda.
+/// titolo: dal pulsante «Partecipa» della Home la pagina si chiama «Seleziona il tuo rione».
 class PaginaRioni extends StatefulWidget {
-  const PaginaRioni({super.key});
+  final String titolo;
+  const PaginaRioni({super.key, this.titolo = 'Rioni'});
 
   @override
   State<PaginaRioni> createState() => _PaginaRioniState();
@@ -25,7 +27,7 @@ class _PaginaRioniState extends State<PaginaRioni> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Rioni')),
+      appBar: AppBar(title: Text(widget.titolo)),
       body: FutureBuilder<List<Rione>>(
         future: _rioni,
         builder: (context, s) {

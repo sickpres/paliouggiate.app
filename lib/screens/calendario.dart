@@ -68,7 +68,7 @@ class _PaginaCalendarioState extends State<PaginaCalendario> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(titoloConEta('Calendario', _filtro)),
+        title: TitoloConFiltro('Calendario', etichettaEta(_filtro)),
         actions: [
           BottoneFiltra(attivo: _filtro != null, onPressed: _filtra),
           IconButton(
@@ -317,6 +317,8 @@ class SchedaVoce extends StatelessWidget {
                     padding: const EdgeInsets.only(top: 2),
                     child: Text(v.luogo, style: t.textTheme.bodyMedium?.copyWith(color: t.colorScheme.onSurfaceVariant)),
                   ),
+                if (v.luogoPioggia.isNotEmpty)
+                  Text('Se piove: ${v.luogoPioggia}', style: t.textTheme.bodySmall?.copyWith(color: t.colorScheme.onSurfaceVariant)),
                 if (v.chi.isNotEmpty && v.chi != 'Tutti')
                   Text(v.chi, style: t.textTheme.bodySmall?.copyWith(color: t.colorScheme.onSurfaceVariant)),
                 if (v.note.isNotEmpty)
