@@ -56,11 +56,7 @@ class _PaginaGiocoState extends State<PaginaGioco> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Row(children: [
-          IconaGioco(_gioco?.tipo ?? widget.tipo, lato: 22),
-          const SizedBox(width: 10),
-          Expanded(child: Text(_gioco?.nome ?? widget.nome, overflow: TextOverflow.ellipsis)),
-        ]),
+        title: Text(_gioco?.nome ?? widget.nome, overflow: TextOverflow.ellipsis),
       ),
       bottomNavigationBar: MenuInBasso(scelta: _scheda, onScegli: (i) => setState(() => _scheda = i), voci: _voci),
       body: FutureBuilder<(SchedaGioco, List<Rione>)>(
