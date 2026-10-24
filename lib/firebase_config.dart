@@ -4,13 +4,13 @@ import 'package:flutter/foundation.dart';
 // Progetto Firebase del Palio (solo per le notifiche push, Firebase Cloud Messaging).
 // I valori si leggono nella console Firebase: Impostazioni progetto > Generali > Le tue app (Android e iOS).
 // Non sono segreti: identificano l'app presso Firebase, come i file google-services.json e GoogleService-Info.plist,
-// che qui non servono. Finche' sono vuoti l'app funziona senza notifiche.
-const _progetto = '';
-const _mittente = ''; // «ID mittente» (Cloud Messaging)
-const _chiaveAndroid = '';
-const _appAndroid = ''; // es. 1:1234567890:android:abc...
-const _chiaveIos = '';
-const _appIos = ''; // es. 1:1234567890:ios:abc...
+// che qui non servono. Senza valori l'app funzionerebbe senza notifiche.
+const _progetto = 'palio-uggiate';
+const _mittente = '700969387324'; // «ID mittente» (Cloud Messaging)
+const _chiaveAndroid = 'AIzaSyBFDc1qBQ-7_HaRUaurm0chfw6UbRB03_E';
+const _appAndroid = '1:700969387324:android:32f58ac312df4e1a760a39';
+const _chiaveIos = 'AIzaSyDOZwUIVr1w8Uny-8HIdAYD9QqQUEahq9Q';
+const _appIos = '1:700969387324:ios:75c0a05549c21cca760a39';
 
 bool get _ios => defaultTargetPlatform == TargetPlatform.iOS;
 
