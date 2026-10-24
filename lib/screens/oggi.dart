@@ -296,7 +296,7 @@ class _Copertina extends StatelessWidget {
                     const SizedBox(width: 10),
                     _Scorciatoia('documenti', 'Documenti', () => _apri(context, const PaginaDocumenti())),
                     const SizedBox(width: 10),
-                    _Scorciatoia('ricordi', 'Ricordi', () => _foglio(context, 'Ricordi', const _Ricordi())),
+                    _Scorciatoia('ricordi', 'Ricordi', () => apriRicordi(context)),
                   ]),
                 ]),
               ],
@@ -309,6 +309,9 @@ class _Copertina extends StatelessWidget {
 }
 
 /// Foglio che sale dal basso, scuro come la Home, con un titolo e il contenuto.
+/// Il video «Ricordi» nel foglio della Home (anche dal tocco su una notifica, apri_pagina.dart).
+void apriRicordi(BuildContext context) => _foglio(context, 'Ricordi', const _Ricordi());
+
 void _foglio(BuildContext context, String titolo, Widget contenuto) {
   showModalBottomSheet<void>(
     context: context,

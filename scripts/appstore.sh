@@ -47,6 +47,14 @@ rm -rf "$ARCHIVIO"
 xcodebuild -workspace ios/Runner.xcworkspace -scheme Runner -configuration Release -destination 'generic/platform=iOS' \
   -archivePath "$ARCHIVIO" DEVELOPMENT_TEAM="$TEAM_ID" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" archive -quiet \
   || { echo "!! Archivio non riuscito."; exit 1; }
+# un archivio senza firma non porta con se' Runner.entitlements e l'esportazione firma l'app senza aps-environment:
+# iOS allora non consegna il token APNs e le notifiche push non arrivano (successo con la 1.0.1). Una firma ad hoc
+# con le entitlements basta: l'esportazione le conserva quando firma per la distribuzione.
+APP="$ARCHIVIO/Products/Applications/Runner.app"
+codesign --force --sign - --entitlements ios/Runner/Runner.entitlements --generate-entitlement-der "$APP" \
+  || { echo "!! Firma ad hoc dell'archivio non riuscita."; exit 1; }
+codesign -d --entitlements - "$APP" 2>/dev/null | grep -q aps-environment \
+  || { echo "!! L'archivio non ha aps-environment: le notifiche push non funzionerebbero."; exit 1; }
 
 echo
 echo "=== Esportazione e caricamento su App Store Connect ==="

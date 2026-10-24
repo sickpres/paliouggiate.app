@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+import 'apri_pagina.dart';
 import 'push.dart';
 import 'screens/home.dart';
 import 'tema.dart';
@@ -28,6 +29,7 @@ class PalioApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Il Palio dei Rioni',
+      navigatorKey: navigatore, // per aprire una pagina dal tocco su una notifica
       debugShowCheckedModeBanner: false,
       theme: temaPalio(Brightness.light),
       darkTheme: temaPalio(Brightness.dark),
