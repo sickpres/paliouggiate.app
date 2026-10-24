@@ -24,6 +24,12 @@ android {
         isCoreLibraryDesugaringEnabled = true
     }
 
+    // l'app e' solo in italiano: senza filtro le traduzioni delle librerie Android farebbero risultare su Google Play
+    // decine di lingue (con xml/locales_config.xml, la lingua dell'app nelle impostazioni di Android 13+)
+    androidResources {
+        localeFilters += listOf("it")
+    }
+
     defaultConfig {
         // lo stesso identificativo dell'app per iPhone
         applicationId = "it.uggiateconronago.palio"

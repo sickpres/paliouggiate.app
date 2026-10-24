@@ -5,7 +5,12 @@
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
-	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<string>it</string>
+	<!-- l'app e' solo in italiano: e' la lingua che l'App Store mostra nella scheda -->
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>it</string>
+	</array>
 	<key>CFBundleDisplayName</key>
 	<string>Il Palio dei Rioni</string>
 	<key>CFBundleExecutable</key>
