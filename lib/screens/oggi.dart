@@ -334,7 +334,8 @@ class _Diretta extends StatelessWidget {
   }
 }
 
-/// «Ricordi»: il filmato storico del Palio (nell'app, si vede anche senza rete). Parte da solo; un tocco lo ferma o lo riprende.
+/// «Ricordi»: il video caricato dal pannello del portale (immagini delle edizioni passate), scaricato quando si apre.
+/// Parte da solo; un tocco lo ferma o lo riprende. Senza video (o senza rete) un messaggio.
 class _Ricordi extends StatefulWidget {
   const _Ricordi();
 
@@ -343,17 +344,33 @@ class _Ricordi extends StatefulWidget {
 }
 
 class _RicordiState extends State<_Ricordi> {
-  final _video = VideoPlayerController.asset('assets/ricordi.mp4');
+  VideoPlayerController? _video;
+  VideoRicordi? _info;
+  bool _pronto = false; // dati del video arrivati (o assenti)
+  bool _errore = false;
 
   @override
   void initState() {
     super.initState();
-    _video.initialize().then((_) {
+    _carica();
+  }
+
+  Future<void> _carica() async {
+    try {
+      final info = await Api.instance.ricordi();
+      if (!mounted) return;
+      setState(() { _info = info; _pronto = true; });
+      if (info == null) return;
+      final v = VideoPlayerController.networkUrl(Uri.parse('$baseUrl${info.url}'));
+      _video = v;
+      v.addListener(_aggiorna);
+      await v.initialize();
       if (!mounted) return;
       setState(() {});
-      _video.play();
-    });
-    _video.addListener(_aggiorna);
+      v.play();
+    } catch (_) {
+      if (mounted) setState(() { _pronto = true; _errore = true; });
+    }
   }
 
   void _aggiorna() {
@@ -362,40 +379,54 @@ class _RicordiState extends State<_Ricordi> {
 
   @override
   void dispose() {
-    _video.removeListener(_aggiorna);
-    _video.dispose();
+    _video?.removeListener(_aggiorna);
+    _video?.dispose();
     super.dispose();
   }
 
   void _tocca() {
-    final v = _video.value;
+    final c = _video;
+    if (c == null) return;
+    final v = c.value;
     if (v.isPlaying) {
-      _video.pause();
+      c.pause();
     } else {
-      if (v.position >= v.duration) _video.seekTo(Duration.zero); // finito: si rivede da capo
-      _video.play();
+      if (v.position >= v.duration) c.seekTo(Duration.zero); // finito: si rivede da capo
+      c.play();
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final v = _video.value;
+    final t = Theme.of(context);
+    final nota = t.textTheme.bodyMedium?.copyWith(color: Colors.white70);
+    if (_pronto && (_errore || _info == null)) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
+        child: Text(_errore ? 'Non riesco a scaricare il video: controlla la connessione e riprova.' : 'Il video dei ricordi arriverà presto.',
+            style: t.textTheme.bodyLarge?.copyWith(color: Colors.white70)),
+      );
+    }
+    final v = _video?.value;
+    final pronto = v != null && v.isInitialized;
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        if (_info != null && _info!.titolo.isNotEmpty)
+          Padding(padding: const EdgeInsets.only(bottom: 8), child: Text(_info!.titolo, style: t.textTheme.titleMedium?.copyWith(color: Colors.white))),
         ClipRRect(
           borderRadius: BorderRadius.circular(14),
           child: AspectRatio(
-            aspectRatio: v.isInitialized ? v.aspectRatio : 4 / 3,
-            child: !v.isInitialized
+            aspectRatio: pronto ? v.aspectRatio : 4 / 3,
+            child: !pronto
                 ? const ColoredBox(color: Colors.black, child: Center(child: CircularProgressIndicator()))
                 : Semantics(
                     button: true,
-                    label: v.isPlaying ? 'Metti in pausa il filmato' : 'Guarda il filmato',
+                    label: v.isPlaying ? 'Metti in pausa il video' : 'Guarda il video',
                     child: GestureDetector(
                       onTap: _tocca,
                       child: Stack(fit: StackFit.expand, children: [
-                        VideoPlayer(_video),
+                        VideoPlayer(_video!),
                         if (!v.isPlaying)
                           const ColoredBox(
                             color: Color(0x66000000),
@@ -403,7 +434,7 @@ class _RicordiState extends State<_Ricordi> {
                           ),
                         Align(
                           alignment: Alignment.bottomCenter,
-                          child: VideoProgressIndicator(_video,
+                          child: VideoProgressIndicator(_video!,
                               allowScrubbing: true,
                               colors: const VideoProgressColors(playedColor: oro, bufferedColor: Colors.white38, backgroundColor: Colors.white24)),
                         ),
@@ -413,7 +444,7 @@ class _RicordiState extends State<_Ricordi> {
           ),
         ),
         const SizedBox(height: 10),
-        Text('Immagini delle edizioni passate del Palio dei rioni.', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white70)),
+        Text(_info != null && _info!.descrizione.isNotEmpty ? _info!.descrizione : 'Immagini delle edizioni passate del Palio dei rioni.', style: nota),
       ]),
     );
   }

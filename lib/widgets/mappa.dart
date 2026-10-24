@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../api.dart';
@@ -42,7 +43,7 @@ class SchedaRione extends StatelessWidget {
                 width: double.infinity,
                 child: FilledButton.icon(
                   onPressed: () => unisciti(context, r),
-                  icon: const Icon(Icons.groups),
+                  icon: const FaIcon(FontAwesomeIcons.whatsapp, size: 20),
                   label: const Text('Unisciti a noi'),
                 ),
               ),

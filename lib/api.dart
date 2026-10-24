@@ -76,6 +76,12 @@ class Api {
 
   Future<SchedaGioco> gioco(int id) async => SchedaGioco.fromJson(_mappa(await _get('giochi/$id')));
 
+  /// Video «Ricordi» della Home, caricato dal pannello; null se non c'e'.
+  Future<VideoRicordi?> ricordi() async {
+    final v = _mappa(await _get('ricordi'))['video'];
+    return v is Map ? VideoRicordi.fromJson(Map<String, dynamic>.from(v)) : null;
+  }
+
   Future<List<Documento>> documenti() async => _lista(await _get('documenti')).map(Documento.fromJson).toList();
 
   Future<List<Sponsor>> sponsor() async => _lista(await _get('sponsor')).map(Sponsor.fromJson).toList();

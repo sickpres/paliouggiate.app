@@ -478,3 +478,13 @@ class SchedaGioco {
     );
   }
 }
+
+/// Video «Ricordi» della Home (GET /api/ricordi): l'indirizzo cambia a ogni nuovo caricamento.
+class VideoRicordi {
+  final String titolo;
+  final String descrizione;
+  final String url; // es. /api/ricordi/video?v=123, sul portale
+  VideoRicordi(this.titolo, this.descrizione, this.url);
+
+  factory VideoRicordi.fromJson(Map<String, dynamic> j) => VideoRicordi(_s(j['titolo']), _s(j['descrizione']), _s(j['url']));
+}

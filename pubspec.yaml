@@ -18,6 +18,7 @@ dependencies:
   url_launcher: ^6.3.1
   flutter_svg: ^2.0.10
   video_player: ^2.14.1
+  font_awesome_flutter: ^11.0.0
 
 dev_dependencies:
   flutter_test:
@@ -36,8 +37,6 @@ flutter:
     - assets/instagram.png
     - assets/vs.webp
     - assets/vs_scuro.webp
-    # «Ricordi» della Home: filmato storico del Palio (60 s, 960x720, senza audio)
-    - assets/ricordi.mp4
     - assets/fonts/OFL-Nunito.txt
     - assets/fonts/OFL-EncodeSans.txt
   # Nunito per i testi, Encode Sans Semi Condensed per titoli e scritte della Home (SIL Open Font License, assets/fonts/OFL-*.txt), da Google Fonts:
