@@ -5,7 +5,11 @@ iPhone inclinati (a volte a cavallo tra due schermate) e un titolo breve in alto
 Entrata: le schermate del simulatore (1206 x 2622, iPhone 6,3") fatte da scripts/schermate.sh, in una cartella.
 Uscita: una immagine 1206 x 2622 per schermata (stesso ordine), pronte per App Store Connect.
 
-Uso: python scripts/vetrina-appstore.py <cartella schermate> <cartella uscita>
+Uso: python scripts/vetrina-appstore.py <cartella schermate> <cartella uscita> [--android]
+
+Con --android (schermate di scripts/schermate-android.ps1) l'uscita e' 1080 x 2160: Google Play non accetta immagini
+piu' lunghe di 2:1. Si compone su una pagina 1206 x 2412 (stesse misure, telefono tagliato un po' piu' in basso) e si
+riduce alla fine.
 """
 import math
 import random
@@ -65,7 +69,7 @@ def sfondo(n: int) -> Image.Image:
     # una forma morbida a cavallo di ogni bordo tra due schermate, alternata sopra e sotto, nei colori delle bandiere
     for k in range(n + 1):
         cx = k * LARGO + caso.uniform(-60, 60)
-        cy = 820 if k % 2 else 2380
+        cy = 820 if k % 2 else ALTO - 240
         r = caso.uniform(230, 300)
         punti = [(cx + r * (1 + 0.18 * math.sin(3 * a + k)) * math.cos(a), cy + r * (1 + 0.18 * math.cos(2 * a + k)) * math.sin(a))
                  for a in [j * math.pi / 40 for j in range(80)]]
@@ -77,7 +81,7 @@ def sfondo(n: int) -> Image.Image:
         d.ellipse((x - r, y - r, x + r, y + r), fill=caso.choice(BANDIERE + [ORO]) + (170,))
     img = Image.alpha_composite(img, strato.filter(ImageFilter.GaussianBlur(2)))
     festoni(img, 610, 900, 150, 0)
-    festoni(img, 2050, 1100, 200, 450)
+    festoni(img, ALTO - 570, 1100, 200, 450)
     return img
 
 
@@ -133,9 +137,15 @@ def main(entrata: Path, uscita: Path):
     for i, (nome, testo, _, _) in enumerate(pagine):
         titolo(pano, testo, i * LARGO)
     for i, (nome, *_rest) in enumerate(pagine):
-        pano.crop((i * LARGO, 0, (i + 1) * LARGO, ALTO)).convert('RGB').save(uscita / f'{i + 1:02d}-{nome}.png', optimize=True)
+        pagina = pano.crop((i * LARGO, 0, (i + 1) * LARGO, ALTO)).convert('RGB')
+        if finale:
+            pagina = pagina.resize(finale, Image.LANCZOS)
+        pagina.save(uscita / f'{i + 1:02d}-{nome}.png', optimize=True)
         print('fatta', uscita / f'{i + 1:02d}-{nome}.png')
 
 
 if __name__ == '__main__':
+    finale = None
+    if '--android' in sys.argv:
+        ALTO, finale = 2412, (1080, 2160)
     main(Path(sys.argv[1]), Path(sys.argv[2]))

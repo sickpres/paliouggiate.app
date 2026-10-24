@@ -6,7 +6,9 @@
 # Le schermate per Google Play non possono superare il rapporto 2:1: si ritagliano barra di stato e barra di navigazione.
 
 param([Parameter(ValueFromRemainingArguments = $true)][string[]]$Voci)
-$ErrorActionPreference = 'Stop'
+# non 'Stop': Windows PowerShell tratta come errore qualunque riga che flutter scrive su stderr (anche un semplice avviso);
+# gli errori veri si vedono da $LASTEXITCODE
+$ErrorActionPreference = 'Continue'
 $flutter = 'C:\Tools\flutter\bin\flutter.bat'
 $adb = 'C:\Tools\android-sdk\platform-tools\adb.exe'
 $id = 'it.uggiateconronago.palio'
