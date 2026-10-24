@@ -1,0 +1,11 @@
+# Solo l'icona Android (l'icona iOS resta quella generata da pubspec.yaml):
+#   dart run flutter_launcher_icons -f scripts/icona-android.yaml
+# Il primo piano lo prepara scripts/icona-adattiva.py, gia' ridotto alla zona sicura: margine zero qui.
+flutter_launcher_icons:
+  ios: false
+  android: true
+  image_path: assets/icona.png
+  adaptive_icon_background: assets/android/icona-sfondo.png
+  adaptive_icon_foreground: assets/android/icona-primo-piano-adattiva.png
+  adaptive_icon_foreground_inset: 0
+  min_sdk_android: 24
