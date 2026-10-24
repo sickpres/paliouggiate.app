@@ -68,12 +68,6 @@ class Api {
     return t.testo.isEmpty ? null : t;
   }
 
-  /// Piano dei promemoria da programmare sul telefono (vuoto se il portale non ne prevede).
-  Future<List<Notifica>> notifiche() async {
-    final d = _mappa(await _get('notifiche'));
-    return [for (final x in _lista(d['piano'])) Notifica.fromJson(x)].whereType<Notifica>().toList();
-  }
-
   Future<SchedaGioco> gioco(int id) async => SchedaGioco.fromJson(_mappa(await _get('giochi/$id')));
 
   /// Video «Ricordi» della Home, caricato dal pannello; null se non c'e'.

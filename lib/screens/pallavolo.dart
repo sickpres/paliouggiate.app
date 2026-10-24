@@ -3,12 +3,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../api.dart';
 import '../models.dart';
-import '../promemoria.dart';
+import '../push.dart';
 import '../widgets/comuni.dart';
 import '../widgets/griglia_mese.dart';
 import '../widgets/icone_tratto.dart';
 
-// il rione scelto nel filtro resta selezionato anche alle aperture successive (chiaveRione, in promemoria.dart),
+// il rione scelto nel filtro resta selezionato anche alle aperture successive (chiaveRione, in push.dart),
 // e cosi' la vista (mese o elenco completo)
 const _kVista = 'vista_pallavolo';
 
@@ -76,7 +76,6 @@ class _PaginaPallavoloState extends State<PaginaPallavolo> {
     } catch (_) {
       // la scelta vale comunque finche' la pagina resta aperta
     }
-    Promemoria.aggiorna(); // i promemoria citano la partita del rione scelto
   }
 
   void _cambia() {

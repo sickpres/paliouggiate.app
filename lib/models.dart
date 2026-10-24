@@ -352,40 +352,6 @@ String ancoraDaGiocare(int n, String unita) {
   return '${n == 1 ? 'manca' : 'mancano'} ancora $n $u';
 }
 
-/// Una partita di pallavolo allegata al promemoria del giorno (per citare quella del rione scelto).
-class PartitaPromemoria {
-  final String ora;
-  final int rioneA;
-  final int rioneB;
-  final int? arbitro;
-  PartitaPromemoria(this.ora, this.rioneA, this.rioneB, this.arbitro);
-}
-
-/// Una notifica del piano del portale (GET /api/notifiche).
-class Notifica {
-  final String id;
-  final DateTime quando;
-  final String titolo;
-  final String testo;
-  final List<PartitaPromemoria> partite;
-  Notifica({required this.id, required this.quando, required this.titolo, required this.testo, required this.partite});
-
-  static Notifica? fromJson(Map<String, dynamic> j) {
-    final quando = DateTime.tryParse(_s(j['quando']));
-    if (quando == null) return null;
-    return Notifica(
-      id: _s(j['id']),
-      quando: quando,
-      titolo: _s(j['titolo']),
-      testo: _s(j['testo']),
-      partite: [
-        for (final p in (j['partite'] as List? ?? const []))
-          PartitaPromemoria(_s(p['ora']), _i(p['rione_a']), _i(p['rione_b']), p['arbitro_id'] == null ? null : _i(p['arbitro_id']))
-      ],
-    );
-  }
-}
-
 /// Un appuntamento di un gioco (giorno, ora, luogo).
 class Appuntamento {
   final DateTime data;

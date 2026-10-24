@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- colore dell'icona delle notifiche push (oro del Palio) -->
+    <color name="notifica">#FEAB06</color>
+</resources>

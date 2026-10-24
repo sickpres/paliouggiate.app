@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
-import 'promemoria.dart';
+import 'push.dart';
 import 'screens/home.dart';
 import 'tema.dart';
 
@@ -18,7 +18,7 @@ void main() {
     }
   });
   runApp(const PalioApp());
-  Promemoria.aggiorna();
+  Push.avvia(); // notifiche push del portale
 }
 
 class PalioApp extends StatelessWidget {
