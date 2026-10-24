@@ -23,8 +23,12 @@ class Push {
       description: 'Promemoria delle gare e avvisi degli organizzatori', importance: Importance.high);
   static bool _avviate = false;
 
+  // nelle compilazioni per le schermate dello store (scripts/schermate.sh, --dart-define=SCHERMATA=...) niente push:
+  // la richiesta del permesso coprirebbe la pagina
+  static const _schermata = String.fromEnvironment('SCHERMATA');
+
   static Future<void> avvia() async {
-    if (_avviate) return;
+    if (_avviate || _schermata.isNotEmpty) return;
     _avviate = true;
     try {
       await _locali.initialize(const InitializationSettings(

@@ -18,6 +18,9 @@ xcrun simctl boot "$SIM" 2>/dev/null
 xcrun simctl bootstatus "$SIM" -b >/dev/null
 # ora fissa nella barra di stato, come nelle schermate dell'App Store
 xcrun simctl status_bar "$SIM" override --time 9:41 --batteryState charged --batteryLevel 100 --cellularBars 4 --wifiBars 3
+# un avviso di sistema lasciato aperto da una prova precedente (es. il permesso per le notifiche) resterebbe sopra
+# a tutte le schermate: togliendo l'app si chiude anche l'avviso
+xcrun simctl uninstall "$SIM" $ID 2>/dev/null
 
 for voce in "$@"; do
   nome="${voce%%:*}"
