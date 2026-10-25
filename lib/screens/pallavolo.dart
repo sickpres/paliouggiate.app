@@ -140,9 +140,11 @@ class _PaginaPallavoloState extends State<PaginaPallavolo> {
     final partite = sel == null ? d.cal.partite : d.cal.partite.where((p) => p.gioca(sel)).toList();
     final righe = <Widget>[const SizedBox(height: 8)];
 
-    // il luogo e, se c'e', quello in caso di pioggia: «Piazza della chiesa/Palestra Ronago»
-    final dove = [d.cal.luogo, d.cal.luogoPioggia].where((s) => s.isNotEmpty).join('/');
-    final info = [d.cal.chi, dove].where((s) => s.isNotEmpty).join(' · ');
+    // per chi e dove; il luogo in caso di pioggia, se c'e', va a capo
+    final info = [
+      [d.cal.chi, d.cal.luogo].where((s) => s.isNotEmpty).join(' · '),
+      if (d.cal.luogoPioggia.isNotEmpty) 'In caso di pioggia: ${d.cal.luogoPioggia}',
+    ].where((s) => s.isNotEmpty).join('\n');
     final giocate = d.cal.partite.where((p) => p.risultato.isNotEmpty).length;
     if (giocate > 0) {
       righe.add(Card(
