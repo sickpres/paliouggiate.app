@@ -31,7 +31,6 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-    - assets/logo.png
     - assets/home.webp
     - assets/mappa_rioni.webp
     - assets/sfondi/
