@@ -28,7 +28,8 @@ class Rione {
   final bool haSimbolo; // foto «simbolo» 16:9 caricata dal pannello
   final String simboloVersione;
   final String whatsapp; // link del gruppo WhatsApp del rione (dal pannello), vuoto se non c'e'
-  Rione({required this.id, required this.nome, required this.colore, this.descrizione = '', this.capoRione = '', required this.haLogo, required this.logoVersione, this.haSimbolo = false, this.simboloVersione = '', this.whatsapp = ''});
+  final List<FotoRione> foto; // foto 16:9 nell'ordine scelto nel pannello (carosello); la prima e' la foto «simbolo»
+  Rione({required this.id, required this.nome, required this.colore, this.descrizione = '', this.capoRione = '', required this.haLogo, required this.logoVersione, this.haSimbolo = false, this.simboloVersione = '', this.whatsapp = '', this.foto = const []});
 
   factory Rione.fromJson(Map<String, dynamic> j) => Rione(
         id: _i(j['id']),
@@ -41,7 +42,15 @@ class Rione {
         haSimbolo: j['ha_simbolo'] == true,
         simboloVersione: _s(j['simbolo_versione']),
         whatsapp: _s(j['whatsapp']),
+        foto: [for (final f in (j['foto'] as List? ?? const [])) FotoRione(_i((f as Map)['id']), _s(f['v']))],
       );
+}
+
+/// Una foto del rione (id e versione, per l'indirizzo che cambia quando la foto cambia).
+class FotoRione {
+  final int id;
+  final String v;
+  const FotoRione(this.id, this.v);
 }
 
 /// Una voce del programma: una sessione di gioco oppure un evento.

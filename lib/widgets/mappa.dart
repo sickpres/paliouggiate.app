@@ -9,7 +9,7 @@ import '../api.dart';
 import '../models.dart';
 import 'comuni.dart';
 
-/// Scheda di un rione: stemma, nome, descrizione, capo rione, «Unisciti a noi» (gruppo WhatsApp) e la foto «simbolo» se c'e'.
+/// Scheda di un rione: stemma, nome, descrizione, capo rione, le foto (carosello) e «Unisciti a noi» (gruppo WhatsApp).
 class SchedaRione extends StatelessWidget {
   final String nome;
   final List<Rione> rioni;
@@ -36,6 +36,9 @@ class SchedaRione extends StatelessWidget {
                 text: r != null && r.capoRione.isNotEmpty ? r.capoRione : 'da definire',
                 style: const TextStyle(fontWeight: FontWeight.w700)),
           ])),
+          // le foto del rione (a carosello se sono piu' d'una), poi «Unisciti a noi»
+          if (r != null && (r.foto.isNotEmpty || r.haSimbolo))
+            Padding(padding: const EdgeInsets.only(top: 12), child: _FotoRione(key: ValueKey(r.id), rione: r)),
           if (r != null && r.whatsapp.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 12),
@@ -48,26 +51,83 @@ class SchedaRione extends StatelessWidget {
                 ),
               ),
             ),
-          if (r != null && r.haSimbolo)
-            Padding(
-              padding: const EdgeInsets.only(top: 12),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: AspectRatio(
-                  aspectRatio: 16 / 9,
-                  child: Image.network(
-                    Api.instance.simboloRione(r),
-                    fit: BoxFit.cover,
-                    loadingBuilder: (context, figlio, avanzamento) =>
-                        avanzamento == null ? figlio : ColoredBox(color: coloreHex(r.colore).withValues(alpha: 0.15)),
-                    errorBuilder: (context, e, s) => const SizedBox.shrink(),
-                  ),
-                ),
-              ),
-            ),
         ]),
       ),
     );
+  }
+}
+
+/// Foto del rione 16:9 nell'ordine scelto nel pannello: si scorrono col dito e, se sono piu' d'una, i pallini sotto
+/// dicono quale si vede (un tocco su un pallino porta a quella foto). Con un portale vecchio, senza l'elenco delle
+/// foto, resta la sola foto «simbolo».
+class _FotoRione extends StatefulWidget {
+  final Rione rione;
+  const _FotoRione({super.key, required this.rione});
+
+  @override
+  State<_FotoRione> createState() => _FotoRioneState();
+}
+
+class _FotoRioneState extends State<_FotoRione> {
+  final _pagine = PageController();
+  int _vista = 0;
+
+  @override
+  void dispose() {
+    _pagine.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final r = widget.rione;
+    final indirizzi = r.foto.isNotEmpty ? [for (final f in r.foto) Api.instance.fotoRione(r, f)] : [Api.instance.simboloRione(r)];
+    final colore = coloreHex(r.colore);
+    return Column(children: [
+      ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: AspectRatio(
+          aspectRatio: 16 / 9,
+          child: PageView.builder(
+            controller: _pagine,
+            itemCount: indirizzi.length,
+            onPageChanged: (i) => setState(() => _vista = i),
+            itemBuilder: (context, i) => Image.network(
+              indirizzi[i],
+              fit: BoxFit.cover,
+              semanticLabel: 'Foto ${i + 1} di ${indirizzi.length} del rione ${r.nome}',
+              loadingBuilder: (context, figlio, avanzamento) => avanzamento == null ? figlio : ColoredBox(color: colore.withValues(alpha: 0.15)),
+              errorBuilder: (context, e, s) => ColoredBox(color: colore.withValues(alpha: 0.15)),
+            ),
+          ),
+        ),
+      ),
+      if (indirizzi.length > 1)
+        Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+            for (var i = 0; i < indirizzi.length; i++)
+              GestureDetector(
+                onTap: () => _pagine.animateToPage(i, duration: const Duration(milliseconds: 300), curve: Curves.easeOut),
+                child: Semantics(
+                  label: 'Foto ${i + 1}',
+                  selected: i == _vista,
+                  button: true,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+                    width: i == _vista ? 10 : 8,
+                    height: i == _vista ? 10 : 8,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: i == _vista ? colore : Theme.of(context).colorScheme.outlineVariant,
+                    ),
+                  ),
+                ),
+              ),
+          ]),
+        ),
+    ]);
   }
 }
 

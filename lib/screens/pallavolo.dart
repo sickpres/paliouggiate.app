@@ -140,7 +140,9 @@ class _PaginaPallavoloState extends State<PaginaPallavolo> {
     final partite = sel == null ? d.cal.partite : d.cal.partite.where((p) => p.gioca(sel)).toList();
     final righe = <Widget>[const SizedBox(height: 8)];
 
-    final info = [d.cal.chi, d.cal.luogo, if (d.cal.luogoPioggia.isNotEmpty) 'se piove: ${d.cal.luogoPioggia}'].where((s) => s.isNotEmpty).join(' · ');
+    // il luogo e, se c'e', quello in caso di pioggia: «Piazza della chiesa/Palestra Ronago»
+    final dove = [d.cal.luogo, d.cal.luogoPioggia].where((s) => s.isNotEmpty).join('/');
+    final info = [d.cal.chi, dove].where((s) => s.isNotEmpty).join(' · ');
     final giocate = d.cal.partite.where((p) => p.risultato.isNotEmpty).length;
     if (giocate > 0) {
       righe.add(Card(
@@ -154,15 +156,11 @@ class _PaginaPallavoloState extends State<PaginaPallavolo> {
         ),
       ));
     }
-    if (info.isNotEmpty || sel != null) {
-      final delRione = partite.length;
+    if (info.isNotEmpty) {
       righe.add(Padding(
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
         child: Text(
-          [
-            if (sel != null) '${rioni[sel]!.nome}: $delRione ${delRione == 1 ? 'partita' : 'partite'}',
-            if (info.isNotEmpty) info,
-          ].join('\n'),
+          info,
           style: t.textTheme.bodyMedium?.copyWith(color: t.colorScheme.onSurfaceVariant),
         ),
       ));

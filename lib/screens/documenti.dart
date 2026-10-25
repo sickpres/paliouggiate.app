@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../api.dart';
@@ -36,6 +37,7 @@ class PaginaDocumenti extends StatelessWidget {
             for (final d in lista) _RigaDocumento(d),
             // Google Play chiede il link all'informativa sulla privacy anche dentro l'app
             const _Privacy(),
+            const _Versione(),
           ],
         );
         },
@@ -93,6 +95,26 @@ class _RigaDocumento extends StatelessWidget {
 const _urlPrivacy = 'https://palio.comune.uggiateconronago.co.it/privacy.html';
 
 /// In fondo ai documenti: l'informativa sulla privacy dell'app, aperta nel browser dentro l'app.
+/// In fondo alla pagina la versione dell'app installata (es. «Versione 1.0.2 (6)»): utile quando qualcuno segnala un problema.
+class _Versione extends StatelessWidget {
+  const _Versione();
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context);
+    return FutureBuilder<PackageInfo>(
+      future: PackageInfo.fromPlatform(),
+      builder: (context, s) => s.hasData
+          ? Padding(
+              padding: const EdgeInsets.only(top: 16),
+              child: Text('Versione ${s.data!.version} (${s.data!.buildNumber})',
+                  textAlign: TextAlign.center, style: t.textTheme.bodySmall?.copyWith(color: t.colorScheme.onSurfaceVariant)),
+            )
+          : const SizedBox.shrink(),
+    );
+  }
+}
+
 class _Privacy extends StatelessWidget {
   const _Privacy();
 
