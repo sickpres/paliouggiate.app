@@ -1,7 +1,7 @@
 name: palio_uggiate
 description: "Palio Uggiate con Ronago: calendario, classifiche, giochi e sponsor del Palio dei rioni."
 publish_to: 'none'
-version: 1.0.2+6
+version: 1.0.3+7
 
 environment:
   sdk: ">=3.5.0 <4.0.0"
