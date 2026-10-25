@@ -304,7 +304,7 @@ class SchedaVoce extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(8),
           child: Row(children: [
-            FotoGioco(giocoId: v.giocoId, tipo: v.tipo, evento: v.evento),
+            FotoGioco(giocoId: v.giocoId, tipo: v.tipo, evento: v.evento, eventoId: v.haFoto ? v.eventoId : null, versione: v.fotoVersione),
             const SizedBox(width: 14),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

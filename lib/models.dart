@@ -57,6 +57,9 @@ class FotoRione {
 class Voce {
   final String genere; // 'gioco' | 'evento'
   final int? giocoId;
+  final int? eventoId;
+  final bool haFoto; // evento con l'immagine caricata nel pannello (per i giochi la foto si chiede comunque)
+  final String fotoVersione;
   final String tipo;
   final String titolo;
   final DateTime data;
@@ -70,6 +73,9 @@ class Voce {
   Voce({
     required this.genere,
     this.giocoId,
+    this.eventoId,
+    this.haFoto = false,
+    this.fotoVersione = '',
     required this.tipo,
     required this.titolo,
     required this.data,
@@ -86,6 +92,9 @@ class Voce {
   factory Voce.fromJson(Map<String, dynamic> j) => Voce(
         genere: _s(j['genere']),
         giocoId: j['gioco_id'] == null ? null : _i(j['gioco_id']),
+        eventoId: j['evento_id'] == null ? null : _i(j['evento_id']),
+        haFoto: j['ha_foto'] == true,
+        fotoVersione: _s(j['foto_versione']),
         tipo: _s(j['tipo']),
         titolo: _s(j['titolo']),
         data: DateTime.tryParse(_s(j['data'])) ?? DateTime(1970),

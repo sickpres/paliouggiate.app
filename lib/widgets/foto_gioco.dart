@@ -4,18 +4,23 @@ import '../api.dart';
 import '../tema.dart';
 import 'icone_tratto.dart';
 
-/// Riquadro con la foto del gioco caricata nel pannello, per le schede di Calendario e Giochi. Per gli eventi e per
-/// i giochi senza foto: blu notte con l'icona in oro.
+/// Riquadro con la foto del gioco o dell'evento caricata nel pannello, per le schede di Calendario e Giochi.
+/// Senza foto: blu notte con l'icona in oro.
 class FotoGioco extends StatelessWidget {
   final int? giocoId;
   final String tipo;
   final bool evento;
-  const FotoGioco({super.key, required this.giocoId, required this.tipo, this.evento = false});
+  final int? eventoId; // evento con l'immagine: eventoId e la sua versione (cambia quando cambia l'immagine)
+  final String versione;
+  const FotoGioco({super.key, required this.giocoId, required this.tipo, this.evento = false, this.eventoId, this.versione = ''});
 
   static const larghezza = 116.0, altezza = 92.0;
 
   @override
   Widget build(BuildContext context) {
+    final indirizzo = evento
+        ? (eventoId == null ? null : '${Api.instance.url('eventi/$eventoId/foto')}?v=$versione')
+        : (giocoId == null ? null : Api.instance.url('giochi/$giocoId/foto'));
     final ripiego = ColoredBox(
       color: bluNotte,
       child: Center(child: evento ? const Icon(Icons.celebration, size: 36, color: oro) : IconaGioco(tipo, lato: 36, colore: oro)),
@@ -25,10 +30,10 @@ class FotoGioco extends StatelessWidget {
       child: SizedBox(
         width: larghezza,
         height: altezza,
-        child: giocoId == null
+        child: indirizzo == null
             ? ripiego
             : Image.network(
-                Api.instance.url('giochi/$giocoId/foto'),
+                indirizzo,
                 fit: BoxFit.cover,
                 cacheWidth: (larghezza * MediaQuery.devicePixelRatioOf(context)).round(),
                 excludeFromSemantics: true,
