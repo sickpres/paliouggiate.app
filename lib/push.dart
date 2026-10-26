@@ -54,7 +54,9 @@ class Push {
       FirebaseMessaging.onMessageOpenedApp.listen((m) => apriPagina(m.data));
       final iniziale = await fcm.getInitialMessage();
       if (iniziale != null) apriPagina(iniziale.data);
-      final permesso = await fcm.requestPermission(alert: true, sound: true, badge: false);
+      // badge: su iPhone il «1» sull'icona che il portale mette in ogni push; lo azzera AppDelegate.swift all'apertura.
+      // Con l'app aperta l'icona non si tocca (badge: false qui sotto)
+      final permesso = await fcm.requestPermission(alert: true, sound: true, badge: true);
       if (permesso.authorizationStatus == AuthorizationStatus.denied) return;
       await fcm.setForegroundNotificationPresentationOptions(alert: true, sound: true, badge: false);
       // iPhone: l'iscrizione all'argomento richiede il token APNs, che Apple consegna qualche istante dopo il permesso;
