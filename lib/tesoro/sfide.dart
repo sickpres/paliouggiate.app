@@ -265,6 +265,8 @@ class _PaginaPuzzleState extends State<PaginaPuzzle> with _ContoAllaRovescia {
   late final List<int> _pezzi; // _pezzi[posto] = pezzo che ci sta adesso
   int? _scelto;
   late final int _totale;
+  // all'inizio l'immagine si vede intera per 2 secondi (il portale non li conta), poi si mescola e parte il tempo
+  bool _anteprima = true;
 
   @override
   void initState() {
@@ -276,10 +278,16 @@ class _PaginaPuzzleState extends State<PaginaPuzzle> with _ContoAllaRovescia {
     } while (_ordinato());
     _totale = (widget.partita['secondi'] as num).toInt();
     final stream = NetworkImage(TesoroApi.instance.indirizzo((widget.partita['immagini'] as List).first as String)).resolve(ImageConfiguration.empty);
+    restano = _totale;
     stream.addListener(ImageStreamListener((info, _) {
-      if (mounted) setState(() => _immagine = info.image);
+      if (!mounted || _immagine != null) return;
+      setState(() => _immagine = info.image);
+      Future.delayed(const Duration(seconds: 2), () {
+        if (!mounted) return;
+        setState(() => _anteprima = false);
+        avviaTempo(_totale);
+      });
     }));
-    avviaTempo(_totale);
   }
 
   bool _ordinato() {
@@ -290,7 +298,7 @@ class _PaginaPuzzleState extends State<PaginaPuzzle> with _ContoAllaRovescia {
   }
 
   void _tocca(int posto) {
-    if (finita) return;
+    if (finita || _anteprima) return;
     if (_scelto == null) return setState(() => _scelto = posto);
     if (_scelto == posto) return setState(() => _scelto = null);
     setState(() {
@@ -326,7 +334,7 @@ class _PaginaPuzzleState extends State<PaginaPuzzle> with _ContoAllaRovescia {
                               // il bordo del pezzo scelto sta sopra l'immagine, cosi' non la stringe
                               foregroundDecoration: _scelto == posto ? BoxDecoration(border: Border.all(color: oro, width: 4)) : null,
                               decoration: BoxDecoration(boxShadow: _scelto == posto ? const [BoxShadow(color: oro, blurRadius: 12)] : null),
-                              child: CustomPaint(painter: _Pezzo(_immagine!, _pezzi[posto], _colonne, _righe)),
+                              child: CustomPaint(painter: _Pezzo(_immagine!, _anteprima ? posto : _pezzi[posto], _colonne, _righe)),
                             ),
                           ),
                         );

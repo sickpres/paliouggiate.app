@@ -418,6 +418,7 @@ class _Tappa extends StatelessWidget {
 }
 
 // ---------- le sfide di un livello ----------
+final _temaChiaro = temaPalio(Brightness.light);
 Future<void> mostraLivello(BuildContext context, int n, Json io, List<Json> sfide, Json fatte, Future<void> Function() aggiorna, VoidCallback vaiAlleSfide) {
   return showModalBottomSheet(
     context: context,
@@ -432,14 +433,22 @@ Future<void> mostraLivello(BuildContext context, int n, Json io, List<Json> sfid
       builder: (context, scorri) => ListView(controller: scorri, padding: const EdgeInsets.fromLTRB(16, 0, 16, 24), children: [
         Text('Livello $n', style: Theme.of(context).textTheme.headlineSmall),
         const SizedBox(height: 12),
+        // i box sono bianchi: dentro sempre il tema chiaro, anche col telefono in tema scuro (testi scuri leggibili)
         for (final s in sfide)
-          _SchedaSfida(sfida: s, io: io, fatta: fatte.containsKey(s['chiave']), aggiorna: () async {
-            await aggiorna();
-            if (context.mounted) Navigator.of(context).pop();
-          }, vaiAlleSfide: () {
-            Navigator.of(context).pop();
-            vaiAlleSfide();
-          }),
+          Theme(
+            data: _temaChiaro,
+            // il Material trasparente riapplica lo stile di testo del tema chiaro (quello del foglio resterebbe chiaro)
+            child: Material(
+              type: MaterialType.transparency,
+              child: _SchedaSfida(sfida: s, io: io, fatta: fatte.containsKey(s['chiave']), aggiorna: () async {
+              await aggiorna();
+              if (context.mounted) Navigator.of(context).pop();
+            }, vaiAlleSfide: () {
+              Navigator.of(context).pop();
+              vaiAlleSfide();
+            }),
+            ),
+          ),
       ]),
     ),
   );
