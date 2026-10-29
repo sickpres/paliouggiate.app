@@ -313,30 +313,29 @@ class _PaginaPuzzleState extends State<PaginaPuzzle> with _ContoAllaRovescia {
               : Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   child: LayoutBuilder(builder: (context, c) {
-                    final lato = math.min((c.maxWidth - 3 * 3) / _colonne, (c.maxHeight - 4 * 3) / _righe);
-                    return Center(
-                      child: SizedBox(
-                        width: lato * _colonne + 9,
-                        child: Wrap(spacing: 3, runSpacing: 3, children: [
-                          for (var posto = 0; posto < _pezzi.length; posto++)
-                            GestureDetector(
-                              onTap: () => _tocca(posto),
-                              child: AnimatedScale(
-                                scale: _scelto == posto ? 0.9 : 1,
-                                duration: const Duration(milliseconds: 120),
-                                child: Container(
-                                  width: lato,
-                                  height: lato,
-                                  decoration: BoxDecoration(
-                                    border: Border.all(color: _scelto == posto ? oro : Colors.transparent, width: 4),
-                                    boxShadow: _scelto == posto ? const [BoxShadow(color: oro, blurRadius: 12)] : null,
-                                  ),
-                                  child: CustomPaint(painter: _Pezzo(_immagine!, _pezzi[posto], _colonne, _righe)),
-                                ),
-                              ),
+                    // pezzi attaccati, senza spazio: l'immagine si vede intera
+                    final lato = math.min(c.maxWidth / _colonne, c.maxHeight / _righe);
+                    Widget pezzo(int posto) => GestureDetector(
+                          onTap: () => _tocca(posto),
+                          child: AnimatedScale(
+                            scale: _scelto == posto ? 0.9 : 1,
+                            duration: const Duration(milliseconds: 120),
+                            child: Container(
+                              width: lato,
+                              height: lato,
+                              // il bordo del pezzo scelto sta sopra l'immagine, cosi' non la stringe
+                              foregroundDecoration: _scelto == posto ? BoxDecoration(border: Border.all(color: oro, width: 4)) : null,
+                              decoration: BoxDecoration(boxShadow: _scelto == posto ? const [BoxShadow(color: oro, blurRadius: 12)] : null),
+                              child: CustomPaint(painter: _Pezzo(_immagine!, _pezzi[posto], _colonne, _righe)),
                             ),
-                        ]),
-                      ),
+                          ),
+                        );
+                    // righe e colonne fisse: con un Wrap un arrotondamento potrebbe mandare a capo l'ultimo pezzo
+                    return Center(
+                      child: Column(mainAxisSize: MainAxisSize.min, children: [
+                        for (var r = 0; r < _righe; r++)
+                          Row(mainAxisSize: MainAxisSize.min, children: [for (var k = 0; k < _colonne; k++) pezzo(r * _colonne + k)]),
+                      ]),
                     );
                   }),
                 ),

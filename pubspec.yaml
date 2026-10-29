@@ -1,7 +1,7 @@
 name: palio_uggiate
 description: "Palio Uggiate con Ronago: calendario, classifiche, giochi e sponsor del Palio dei rioni."
 publish_to: 'none'
-version: 1.0.5+9
+version: 1.0.5+10
 
 environment:
   sdk: ">=3.5.0 <4.0.0"
@@ -36,6 +36,7 @@ flutter:
   assets:
     - assets/home.webp
     - assets/mappa_rioni.webp
+    - assets/mappa_tesoro.webp
     - assets/sfondi/
     - assets/facebook.png
     - assets/instagram.png

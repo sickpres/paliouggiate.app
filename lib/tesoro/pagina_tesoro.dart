@@ -11,6 +11,7 @@ import '../tema.dart';
 import '../widgets/comuni.dart';
 import 'api_tesoro.dart';
 import 'classifica_amici.dart';
+import 'info.dart';
 import 'sfide.dart';
 import 'tavolo.dart';
 
@@ -30,7 +31,7 @@ class _PaginaTesoroState extends State<PaginaTesoro> {
   bool _iscritto = false;
   bool _caricato = false;
   bool _posizioneBloccata = false;
-  int _scheda = 0;
+  int _scheda = 1; // 0 Info, 1 Mappa, 2 Sfide, 3 Classifica, 4 Amici: si apre sulla Mappa
   int _giro = 0; // cambia a ogni apertura di Classifica e Amici, cosi' si ricaricano
 
   @override
@@ -88,10 +89,17 @@ class _PaginaTesoroState extends State<PaginaTesoro> {
         ),
       );
     }
-    if (!_iscritto) return PaginaIscrizione(onFatto: _carica);
+    // chi si e' appena iscritto vede prima «Info», cioe' come si gioca
+    if (!_iscritto) {
+      return PaginaIscrizione(onFatto: () {
+        _scheda = 0;
+        return _carica();
+      });
+    }
     final g = _io!['giocatore'] as Json;
     final pagine = [
-      _Mappa(io: _io!, cfg: _cfg!, aggiorna: aggiorna, vaiAlleSfide: () => setState(() => _scheda = 1)),
+      PaginaInfo(cfg: _cfg!),
+      _Mappa(io: _io!, cfg: _cfg!, aggiorna: aggiorna, vaiAlleSfide: () => setState(() => _scheda = 2)),
       PaginaSfide(io: _io!, aggiorna: aggiorna),
       ClassificaTesoro(key: ValueKey('c$_giro')),
       AmiciDelPalio(key: ValueKey('a$_giro')),
@@ -111,7 +119,12 @@ class _PaginaTesoroState extends State<PaginaTesoro> {
             const SizedBox(width: 10),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-                Text('${g['avatar']}', style: const TextStyle(fontFamily: fontTitoli, fontSize: 20, fontWeight: FontWeight.w800), overflow: TextOverflow.ellipsis),
+                // nome intero anche se lungo (es. «Fantasma del Campanile»): si rimpicciolisce invece di tagliarsi
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text('${g['avatar']}', maxLines: 1, style: const TextStyle(fontFamily: fontTitoli, fontSize: 20, fontWeight: FontWeight.w800)),
+                ),
                 Text('${g['rione']} · ${g['punti']} punti', style: Theme.of(context).textTheme.bodySmall),
               ]),
             ),
@@ -133,9 +146,10 @@ class _PaginaTesoroState extends State<PaginaTesoro> {
         selectedIndex: _scheda,
         onDestinationSelected: (i) {
           setState(() => (_scheda = i, _giro++));
-          if (i <= 1) _carica();
+          if (i == 1 || i == 2) _carica();
         },
         destinations: const [
+          NavigationDestination(icon: Icon(Icons.info_outline), selectedIcon: Icon(Icons.info), label: 'Info'),
           NavigationDestination(icon: Icon(Icons.map_outlined), selectedIcon: Icon(Icons.map), label: 'Mappa'),
           NavigationDestination(icon: Icon(Icons.extension_outlined), selectedIcon: Icon(Icons.extension), label: 'Sfide'),
           NavigationDestination(icon: Icon(Icons.emoji_events_outlined), selectedIcon: Icon(Icons.emoji_events), label: 'Classifica'),
@@ -237,7 +251,7 @@ class _PaginaIscrizioneState extends State<PaginaIscrizione> {
                 physics: const NeverScrollableScrollPhysics(),
                 mainAxisSpacing: 12,
                 crossAxisSpacing: 12,
-                childAspectRatio: 0.8,
+                childAspectRatio: 0.72,
                 children: [
                   for (final a in _avatar!.where((a) => a['libero'] == true || a['id'] == widget.modifica?['avatar_id']))
                     InkWell(
@@ -253,7 +267,17 @@ class _PaginaIscrizioneState extends State<PaginaIscrizione> {
                         child: Column(children: [
                           Expanded(child: ClipOval(child: Image.network(TesoroApi.instance.indirizzo(a['foto'] as String), fit: BoxFit.cover))),
                           const SizedBox(height: 6),
-                          Text('${a['nome']}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700)),
+                          // fino a due righe, centrate: i nomi sono di due o tre parole
+                          SizedBox(
+                            height: 34,
+                            child: Center(
+                              child: Text('${a['nome']}',
+                                  maxLines: 2,
+                                  textAlign: TextAlign.center,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, height: 1.15)),
+                            ),
+                          ),
                         ]),
                       ),
                     ),
@@ -284,6 +308,12 @@ class _PaginaIscrizioneState extends State<PaginaIscrizione> {
 }
 
 // ---------- mappa dei tre livelli ----------
+// Sfondo disegnato come la mappa dei rioni (assets/mappa_tesoro.webp, scripts/mappa-tesoro.js); sopra, per ogni
+// livello, una zona colorata e uno «stemma» tondo come quelli dei rioni, il sentiero tratteggiato e il tesoro in riva al lago.
+const _coloriLivello = [Color(0xFFE0A100), Color(0xFF2F6FD0), Color(0xFFD23B3B)];
+const _grigio = Color(0xFF8A8F98);
+const _verde = Color(0xFF2E7D32);
+
 class _Mappa extends StatelessWidget {
   final Json io;
   final Json cfg;
@@ -291,8 +321,9 @@ class _Mappa extends StatelessWidget {
   final VoidCallback vaiAlleSfide;
   const _Mappa({required this.io, required this.cfg, required this.aggiorna, required this.vaiAlleSfide});
 
-  // posizione dei tre livelli sulla mappa (frazioni di larghezza e altezza)
-  static const _punti = [Offset(0.24, 0.80), Offset(0.72, 0.52), Offset(0.32, 0.20)];
+  // posizione dei tre livelli e del tesoro (frazioni di larghezza e altezza)
+  static const _punti = [Offset(0.27, 0.79), Offset(0.66, 0.53), Offset(0.30, 0.29)];
+  static const _tesoro = Offset(0.74, 0.13);
 
   @override
   Widget build(BuildContext context) {
@@ -309,26 +340,23 @@ class _Mappa extends StatelessWidget {
             width: w,
             height: h,
             child: Stack(children: [
-              // pergamena con il sentiero tratteggiato
-              Positioned.fill(child: CustomPaint(painter: _Sentiero(_punti, livello))),
+              Positioned.fill(child: Image.asset('assets/mappa_tesoro.webp', fit: BoxFit.cover)),
+              Positioned.fill(child: CustomPaint(painter: _Sentiero([..._punti, _tesoro], livello))),
               for (var i = 0; i < 3; i++)
                 Positioned(
-                  left: _punti[i].dx * w - 48,
-                  top: _punti[i].dy * h - 48,
+                  left: _punti[i].dx * w - 55,
+                  top: _punti[i].dy * h - 36,
                   child: _Tappa(
                     numero: i + 1,
                     stato: i + 1 < livello ? 'fatto' : i + 1 == livello ? 'corrente' : 'chiuso',
+                    fatte: sfide.where((s) => s['livello'] == i + 1 && fatte.containsKey(s['chiave'])).length,
+                    totale: sfide.where((s) => s['livello'] == i + 1).length,
                     onTap: i + 1 > livello
                         ? () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Completa le sfide del livello precedente per sbloccarlo.')))
                         : () => mostraLivello(context, i + 1, io, sfide.where((s) => s['livello'] == i + 1).toList(), fatte, aggiorna, vaiAlleSfide),
                   ),
                 ),
-              // il tesoro
-              Positioned(
-                left: w * 0.72 - 26,
-                top: h * 0.08,
-                child: Icon(Icons.diamond, size: 52, color: livello >= 3 ? oro : Colors.brown.withValues(alpha: 0.35)),
-              ),
+              Positioned(left: _tesoro.dx * w - 34, top: _tesoro.dy * h - 34, child: _Forziere(aperto: livello >= 3)),
             ]),
           ),
         );
@@ -337,6 +365,7 @@ class _Mappa extends StatelessWidget {
   }
 }
 
+/// Zone colorate dei livelli (come le aree dei rioni) e il sentiero tratteggiato che le unisce fino al tesoro.
 class _Sentiero extends CustomPainter {
   final List<Offset> punti;
   final int livello;
@@ -344,22 +373,33 @@ class _Sentiero extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size s) {
-    final r = Offset.zero & s;
-    canvas.drawRect(r, Paint()..shader = const RadialGradient(colors: [Color(0xFFF3E2B8), Color(0xFFDDBF85)], radius: 1.1).createShader(r));
-    final p = punti.map((x) => Offset(x.dx * s.width, x.dy * s.height)).toList()..add(Offset(s.width * 0.72, s.height * 0.12));
-    final path = Path()..moveTo(p.first.dx, p.first.dy);
+    final p = punti.map((x) => Offset(x.dx * s.width, x.dy * s.height)).toList();
+    // zone: un cerchio morbido intorno a ogni tappa, del colore del livello (grigio se ancora chiuso)
+    for (var i = 0; i < 3; i++) {
+      final colore = i + 1 > livello ? _grigio : _coloriLivello[i];
+      final r = s.shortestSide * 0.2;
+      canvas.drawCircle(p[i], r, Paint()..color = colore.withValues(alpha: 0.22));
+      canvas.drawCircle(p[i], r, Paint()
+        ..color = colore.withValues(alpha: 0.75)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3);
+    }
+    // sentiero: tratteggio marrone; la parte gia' percorsa e' piena e piu' spessa
     for (var i = 1; i < p.length; i++) {
       final a = p[i - 1], b = p[i];
-      path.quadraticBezierTo((a.dx + b.dx) / 2 + (i.isOdd ? 60 : -60), (a.dy + b.dy) / 2, b.dx, b.dy);
-    }
-    final tratto = Paint()
-      ..color = const Color(0xFF6B4219)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 5
-      ..strokeCap = StrokeCap.round;
-    for (final m in path.computeMetrics()) {
-      for (double d = 0; d < m.length; d += 22) {
-        canvas.drawPath(m.extractPath(d, d + 11), tratto);
+      final path = Path()
+        ..moveTo(a.dx, a.dy)
+        ..quadraticBezierTo((a.dx + b.dx) / 2 + (i.isOdd ? 70 : -70), (a.dy + b.dy) / 2, b.dx, b.dy);
+      final fatto = i < livello;
+      final tratto = Paint()
+        ..color = fatto ? const Color(0xFF6B4219) : const Color(0xFF6B4219).withValues(alpha: 0.55)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = fatto ? 7 : 5
+        ..strokeCap = StrokeCap.round;
+      for (final m in path.computeMetrics()) {
+        for (double d = 0; d < m.length; d += 24) {
+          canvas.drawPath(m.extractPath(d, d + 12), tratto);
+        }
       }
     }
   }
@@ -368,41 +408,80 @@ class _Sentiero extends CustomPainter {
   bool shouldRepaint(_Sentiero o) => o.livello != livello;
 }
 
+/// Tappa di un livello: stemma tondo bianco con l'anello del colore del livello, come quelli dei rioni, e sotto
+/// un'etichetta con il nome e le sfide completate.
 class _Tappa extends StatelessWidget {
   final int numero;
   final String stato; // fatto, corrente, chiuso
+  final int fatte, totale;
   final VoidCallback onTap;
-  const _Tappa({required this.numero, required this.stato, required this.onTap});
+  const _Tappa({required this.numero, required this.stato, required this.fatte, required this.totale, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     final chiuso = stato == 'chiuso';
+    final colore = chiuso ? _grigio : stato == 'fatto' ? _verde : _coloriLivello[numero - 1];
     return GestureDetector(
       onTap: onTap,
       child: SizedBox(
-        width: 96,
+        width: 110,
         child: Column(children: [
           Container(
             width: 72,
             height: 72,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: chiuso ? const Color(0xFF8C7A5B) : stato == 'fatto' ? const Color(0xFF2E7D32) : oro,
-              border: Border.all(color: const Color(0xFF3F2410), width: 3),
-              boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(0, 3))],
+              color: Colors.white,
+              border: Border.all(color: colore, width: 6),
+              boxShadow: const [BoxShadow(color: Colors.black38, blurRadius: 10, offset: Offset(0, 4))],
             ),
             child: Center(
               child: chiuso
-                  ? const Icon(Icons.lock, color: Colors.white, size: 32)
+                  ? const Icon(Icons.lock, color: _grigio, size: 32)
                   : stato == 'fatto'
-                      ? const Icon(Icons.check, color: Colors.white, size: 36)
-                      : Text('$numero', style: const TextStyle(fontFamily: fontTitoli, fontSize: 34, fontWeight: FontWeight.w800, color: bluNotte)),
+                      ? const Icon(Icons.check_rounded, color: _verde, size: 40)
+                      : Text('$numero', style: TextStyle(fontFamily: fontTitoli, fontSize: 36, fontWeight: FontWeight.w800, color: colore)),
             ),
           ),
-          const SizedBox(height: 4),
-          Text('Livello $numero', style: const TextStyle(fontFamily: fontTitoli, fontWeight: FontWeight.w800, fontSize: 17, color: Color(0xFF3F2410))),
+          const SizedBox(height: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4)]),
+            child: Column(children: [
+              Text('Livello $numero', style: const TextStyle(fontFamily: fontTitoli, fontWeight: FontWeight.w800, fontSize: 15, color: bluNotte)),
+              if (!chiuso) Text('$fatte di $totale', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: colore)),
+            ]),
+          ),
         ]),
       ),
+    );
+  }
+}
+
+/// Il tesoro in riva al lago: uno stemma oro con la gemma e la X rossa della mappa; spento finche' non si arriva al livello 3.
+class _Forziere extends StatelessWidget {
+  final bool aperto;
+  const _Forziere({required this.aperto});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 68,
+      height: 68,
+      child: Stack(alignment: Alignment.center, children: [
+        Container(
+          width: 64,
+          height: 64,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: aperto ? oro : Colors.white.withValues(alpha: 0.85),
+            border: Border.all(color: aperto ? const Color(0xFF9A6500) : _grigio, width: 5),
+            boxShadow: aperto ? const [BoxShadow(color: oro, blurRadius: 18)] : const [BoxShadow(color: Colors.black26, blurRadius: 6)],
+          ),
+          child: Icon(Icons.diamond, size: 34, color: aperto ? Colors.white : _grigio),
+        ),
+        const Positioned(right: -2, bottom: -4, child: Text('✕', style: TextStyle(fontSize: 30, fontWeight: FontWeight.w900, color: Color(0xFFD23B3B)))),
+      ]),
     );
   }
 }
@@ -594,10 +673,11 @@ class _SchedaSfidaState extends State<_SchedaSfida> {
         padding: const EdgeInsets.all(16),
         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Row(children: [
-            Icon(widget.fatta ? Icons.check_circle : Icons.radio_button_unchecked, color: widget.fatta ? const Color(0xFF2E7D32) : t.colorScheme.outline),
-            const SizedBox(width: 10),
-            Expanded(child: Text('${s['titolo']}', style: t.textTheme.titleMedium)),
-            Text('${s['punti']} punti', style: t.textTheme.labelLarge?.copyWith(color: oroScuro)),
+            _IconaSfida(chiave: chiave, fatta: widget.fatta),
+            const SizedBox(width: 12),
+            Expanded(child: Text('${s['titolo']}', style: t.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800))),
+            const SizedBox(width: 8),
+            _Punti(punti: (s['punti'] as num).toInt(), fatta: widget.fatta),
           ]),
           const SizedBox(height: 6),
           Text('${s['testo']}'),
@@ -605,6 +685,61 @@ class _SchedaSfidaState extends State<_SchedaSfida> {
           if (_lavoro) const Padding(padding: EdgeInsets.only(top: 8), child: LinearProgressIndicator()),
         ]),
       ),
+    );
+  }
+}
+
+// icona di ogni sfida, su un tondo del colore del suo livello (verde quando e' completata)
+const _iconeSfide = {
+  'diffondi': Icons.campaign_rounded,
+  'neuroni': Icons.psychology_rounded,
+  'occhio': Icons.visibility_rounded,
+  'enigma': Icons.key_rounded,
+  'bar': Icons.local_bar_rounded,
+  'frammenti': Icons.map_rounded,
+};
+const _livelloSfide = {'diffondi': 1, 'neuroni': 1, 'occhio': 1, 'enigma': 2, 'bar': 2, 'frammenti': 3};
+
+class _IconaSfida extends StatelessWidget {
+  final String chiave;
+  final bool fatta;
+  const _IconaSfida({required this.chiave, required this.fatta});
+
+  @override
+  Widget build(BuildContext context) {
+    final colore = fatta ? _verde : _coloriLivello[(_livelloSfide[chiave] ?? 1) - 1];
+    return Stack(clipBehavior: Clip.none, children: [
+      Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(color: colore.withValues(alpha: 0.15), shape: BoxShape.circle, border: Border.all(color: colore, width: 2.5)),
+        child: Icon(_iconeSfide[chiave] ?? Icons.flag_rounded, color: colore, size: 26),
+      ),
+      if (fatta)
+        const Positioned(right: -3, bottom: -3, child: CircleAvatar(radius: 10, backgroundColor: _verde, child: Icon(Icons.check, size: 14, color: Colors.white))),
+    ]);
+  }
+}
+
+/// Punti della sfida in evidenza: pillola oro con il numero grande; verde con la spunta quando sono gia' presi.
+class _Punti extends StatelessWidget {
+  final int punti;
+  final bool fatta;
+  const _Punti({required this.punti, required this.fatta});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 4, 12, 6),
+      decoration: BoxDecoration(
+        color: fatta ? _verde : oro,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [BoxShadow(color: (fatta ? _verde : oro).withValues(alpha: 0.45), blurRadius: 8, offset: const Offset(0, 2))],
+      ),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Text('+$punti', style: TextStyle(fontFamily: fontTitoli, fontSize: 24, height: 1.05, fontWeight: FontWeight.w800, color: fatta ? Colors.white : bluNotte)),
+        Text(fatta ? 'presi' : 'punti', style: TextStyle(fontSize: 11, height: 1, fontWeight: FontWeight.w800, color: fatta ? Colors.white : bluNotte)),
+      ]),
     );
   }
 }
