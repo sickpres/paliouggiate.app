@@ -6,7 +6,8 @@ import 'package:http/http.dart' as http;
 
 import 'models.dart';
 
-const baseUrl = 'https://palio.comune.uggiateconronago.co.it';
+// solo per le prove: --dart-define=BASE_URL=http://127.0.0.1:3999 (una copia del portale)
+const baseUrl = String.fromEnvironment('BASE_URL', defaultValue: 'https://palio.comune.uggiateconronago.co.it');
 
 class ApiException implements Exception {
   final int status; // 0 = nessuna risposta dal server

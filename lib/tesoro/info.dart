@@ -29,13 +29,26 @@ class PaginaInfo extends StatelessWidget {
           ),
         ),
       ),
-      ListView(padding: const EdgeInsets.fromLTRB(22, 26, 22, 32), children: [
-        Text('${info['titolo'] ?? ''}',
-            style: const TextStyle(fontFamily: fontTitoli, fontSize: 34, height: 1.1, fontWeight: FontWeight.w800, color: oro,
-                shadows: [Shadow(color: Colors.black54, blurRadius: 8)])),
-        const SizedBox(height: 14),
-        for (final r in righe) _riga(r.trimRight()),
-      ]),
+      // fisso, senza scorrere: se il testo e' lungo si rimpicciolisce quanto serve per stare nello schermo
+      Padding(
+        padding: const EdgeInsets.fromLTRB(22, 26, 22, 24),
+        child: LayoutBuilder(
+          builder: (context, c) => FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.topCenter,
+            child: SizedBox(
+              width: c.maxWidth,
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+                Text('${info['titolo'] ?? ''}',
+                    style: const TextStyle(fontFamily: fontTitoli, fontSize: 34, height: 1.1, fontWeight: FontWeight.w800, color: oro,
+                        shadows: [Shadow(color: Colors.black54, blurRadius: 8)])),
+                const SizedBox(height: 14),
+                for (final r in righe) _riga(r.trimRight()),
+              ]),
+            ),
+          ),
+        ),
+      ),
     ]);
   }
 

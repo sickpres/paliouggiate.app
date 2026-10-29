@@ -7,8 +7,8 @@ import 'package:flutter/material.dart';
 import '../tema.dart';
 import 'api_tesoro.dart';
 
-// Sfide del livello 1 («Riscalda i neuroni»): Memory e Puzzle, 4 colonne per 5 righe, entro il tempo scelto nel
-// pannello. Il tempo lo misura il portale (dall'inizio alla fine della partita); qui c'e' il conto alla rovescia.
+// Sfide del livello 1 («Riscalda i neuroni»): Memory e Puzzle (4 colonne per 5 righe) e Differenze, entro il tempo
+// scelto nel pannello. Il tempo lo misura il portale (dall'inizio alla fine della partita); qui c'e' il conto alla rovescia.
 
 class PaginaSfide extends StatelessWidget {
   final Json io;
@@ -23,7 +23,12 @@ class PaginaSfide extends StatelessWidget {
     }
     final partita = await prova(context, () => TesoroApi.instance.iniziaSfida(gioco));
     if (partita == null || !context.mounted) return;
-    await Navigator.of(context).push(MaterialPageRoute(builder: (_) => gioco == 'memory' ? PaginaMemory(partita: partita) : PaginaPuzzle(partita: partita)));
+    await Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => switch (gioco) {
+              'memory' => PaginaMemory(partita: partita),
+              'puzzle' => PaginaPuzzle(partita: partita),
+              _ => PaginaDifferenze(partita: partita),
+            }));
     await aggiorna();
   }
 
@@ -36,6 +41,8 @@ class PaginaSfide extends StatelessWidget {
       _Riquadro(titolo: 'Memory', icona: Icons.style, sotto: stato('memory'), fatto: n['memory'] != null, onTap: () => _gioca(context, 'memory')),
       const SizedBox(height: 16),
       _Riquadro(titolo: 'Puzzle', icona: Icons.extension, sotto: stato('puzzle'), fatto: n['puzzle'] != null, onTap: () => _gioca(context, 'puzzle')),
+      const SizedBox(height: 16),
+      _Riquadro(titolo: 'Differenze', icona: Icons.compare, sotto: stato('differenze'), fatto: n['differenze'] != null, onTap: () => _gioca(context, 'differenze')),
     ]);
   }
 }
@@ -142,6 +149,145 @@ mixin _ContoAllaRovescia<T extends StatefulWidget> on State<T> {
   void dispose() {
     _timer?.cancel();
     super.dispose();
+  }
+}
+
+// ---------- Differenze: due immagini 4:3 una sopra l'altra; si toccano le differenze, su una delle due ----------
+// Le differenze arrivano dal portale come cerchi { x, y, r } in frazioni dell'immagine (r della larghezza).
+class PaginaDifferenze extends StatefulWidget {
+  final Json partita;
+  const PaginaDifferenze({super.key, required this.partita});
+  @override
+  State<PaginaDifferenze> createState() => _PaginaDifferenzeState();
+}
+
+class _PaginaDifferenzeState extends State<PaginaDifferenze> with _ContoAllaRovescia {
+  late final List<Json> _differenze;
+  final _trovate = <int>{};
+  late final int _totale;
+  late final List<ImageProvider> _immagini;
+  int _caricate = 0;
+  Offset? _errore; // ultimo tocco a vuoto (frazioni dell'immagine), mostrato per un attimo
+  int? _erroreSu;
+  Timer? _via;
+
+  @override
+  void initState() {
+    super.initState();
+    _differenze = [for (final d in widget.partita['differenze'] as List) Map<String, dynamic>.from(d as Map)];
+    _totale = (widget.partita['secondi'] as num).toInt();
+    restano = _totale;
+    _immagini = [for (final i in widget.partita['immagini'] as List) NetworkImage(TesoroApi.instance.indirizzo(i as String))];
+    // il tempo parte quando si vedono tutte e due le immagini
+    for (final img in _immagini) {
+      img.resolve(ImageConfiguration.empty).addListener(ImageStreamListener((_, __) {
+        if (!mounted) return;
+        setState(() => _caricate++);
+        if (_caricate == _immagini.length) avviaTempo(_totale);
+      }));
+    }
+  }
+
+  @override
+  void dispose() {
+    _via?.cancel();
+    super.dispose();
+  }
+
+  void _tocca(int su, Offset f, Size s) {
+    if (finita || _caricate < _immagini.length) return;
+    // la differenza piu' vicina non ancora trovata, entro il suo cerchio (con un po' di tolleranza per il dito)
+    int? presa;
+    var meglio = double.infinity;
+    for (var i = 0; i < _differenze.length; i++) {
+      if (_trovate.contains(i)) continue;
+      final d = _differenze[i];
+      final dist = math.sqrt(math.pow(((d['x'] as num) - f.dx) * s.width, 2) + math.pow(((d['y'] as num) - f.dy) * s.height, 2));
+      if (dist <= (d['r'] as num) * s.width * 1.3 + 6 && dist < meglio) {
+        presa = i;
+        meglio = dist;
+      }
+    }
+    if (presa == null) {
+      _via?.cancel();
+      setState(() {
+        _errore = f;
+        _erroreSu = su;
+      });
+      _via = Timer(const Duration(milliseconds: 600), () {
+        if (mounted) setState(() => _errore = null);
+      });
+      return;
+    }
+    setState(() => _trovate.add(presa!));
+    if (_trovate.length == _differenze.length) vinto('differenze', widget.partita['partita'] as String);
+  }
+
+  Widget _immagine(int su, double w) {
+    final h = w * 3 / 4, s = Size(w, h);
+    return GestureDetector(
+      onTapUp: (e) => _tocca(su, Offset(e.localPosition.dx / w, e.localPosition.dy / h), s),
+      child: SizedBox(
+        width: w,
+        height: h,
+        child: Stack(clipBehavior: Clip.hardEdge, children: [
+          Positioned.fill(child: Image(image: _immagini[su], fit: BoxFit.cover)),
+          for (final i in _trovate)
+            Positioned(
+              left: ((_differenze[i]['x'] as num) - (_differenze[i]['r'] as num)) * w,
+              top: (_differenze[i]['y'] as num) * h - (_differenze[i]['r'] as num) * w,
+              child: Container(
+                width: (_differenze[i]['r'] as num) * w * 2,
+                height: (_differenze[i]['r'] as num) * w * 2,
+                // niente ombra: su un cerchio vuoto scurirebbe la differenza; un filo bianco la stacca dallo sfondo
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.lightGreenAccent.shade700, width: 3, strokeAlign: BorderSide.strokeAlignCenter),
+                ),
+                foregroundDecoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 1.5, strokeAlign: BorderSide.strokeAlignOutside),
+                ),
+              ),
+            ),
+          if (_errore != null && _erroreSu == su)
+            Positioned(
+              left: _errore!.dx * w - 18,
+              top: _errore!.dy * h - 18,
+              child: const Icon(Icons.close_rounded, color: rosso, size: 36, shadows: [Shadow(color: Colors.white, blurRadius: 6)]),
+            ),
+        ]),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final pronte = _caricate >= _immagini.length;
+    return Scaffold(
+      appBar: AppBar(title: const Text('Differenze')),
+      body: Column(children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Text('Trovate ${_trovate.length} di ${_differenze.length}',
+              style: const TextStyle(fontFamily: fontTitoli, fontSize: 20, fontWeight: FontWeight.w800)),
+        ),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: LayoutBuilder(builder: (context, c) {
+              // due immagini 4:3 una sopra l'altra, piu' grandi possibile
+              final w = math.min(c.maxWidth, (c.maxHeight - 10) / 2 * 4 / 3);
+              return Stack(children: [
+                Center(child: Column(mainAxisSize: MainAxisSize.min, children: [_immagine(0, w), const SizedBox(height: 10), _immagine(1, w)])),
+                if (!pronte) const Center(child: CircularProgressIndicator()),
+              ]);
+            }),
+          ),
+        ),
+        barraTempo(_totale),
+      ]),
+    );
   }
 }
 

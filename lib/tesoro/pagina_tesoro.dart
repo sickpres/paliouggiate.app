@@ -330,39 +330,34 @@ class _Mappa extends StatelessWidget {
     final livello = (io['giocatore'] as Json)['livello'] as int;
     final fatte = io['fatte'] as Json;
     final sfide = [for (final s in cfg['sfide'] as List) Map<String, dynamic>.from(s as Map)];
-    return RefreshIndicator(
-      onRefresh: aggiorna,
-      child: LayoutBuilder(builder: (context, c) {
-        final w = c.maxWidth, h = c.maxHeight;
-        // come BoxFit.cover centrato: scala e spostamento dell'immagine
-        final scala = math.max(w / _larghezza, h / _altezza);
-        final dx = (w - _larghezza * scala) / 2, dy = (h - _altezza * scala) / 2;
-        return SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: SizedBox(
-            width: w,
-            height: h,
-            child: Stack(clipBehavior: Clip.hardEdge, children: [
-              Positioned.fill(child: Image.asset('assets/mappa_tesoro.webp', fit: BoxFit.cover)),
-              for (var i = 0; i < 3; i++)
-                Positioned(
-                  left: dx + _punti[i].dx * scala - _Tappa.larghezza / 2,
-                  top: dy + (_sopra + _punti[i].dy) * scala - _Tappa.lato / 2,
-                  child: _Tappa(
-                    numero: i + 1,
-                    stato: i + 1 < livello ? 'fatto' : i + 1 == livello ? 'corrente' : 'chiuso',
-                    fatte: sfide.where((s) => s['livello'] == i + 1 && fatte.containsKey(s['chiave'])).length,
-                    totale: sfide.where((s) => s['livello'] == i + 1).length,
-                    onTap: i + 1 > livello
-                        ? () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Completa le sfide del livello precedente per sbloccarlo.')))
-                        : () => mostraLivello(context, i + 1, io, sfide.where((s) => s['livello'] == i + 1).toList(), fatte, aggiorna, vaiAlleSfide),
-                  ),
-                ),
-            ]),
-          ),
-        );
-      }),
-    );
+    // fissa: non scorre (niente trascinamento per aggiornare, i dati si aggiornano tornando dai livelli)
+    return LayoutBuilder(builder: (context, c) {
+      final w = c.maxWidth, h = c.maxHeight;
+      // come BoxFit.cover centrato: scala e spostamento dell'immagine
+      final scala = math.max(w / _larghezza, h / _altezza);
+      final dx = (w - _larghezza * scala) / 2, dy = (h - _altezza * scala) / 2;
+      return SizedBox(
+        width: w,
+        height: h,
+        child: Stack(clipBehavior: Clip.hardEdge, children: [
+          Positioned.fill(child: Image.asset('assets/mappa_tesoro.webp', fit: BoxFit.cover)),
+          for (var i = 0; i < 3; i++)
+            Positioned(
+              left: dx + _punti[i].dx * scala - _Tappa.larghezza / 2,
+              top: dy + (_sopra + _punti[i].dy) * scala - _Tappa.lato / 2,
+              child: _Tappa(
+                numero: i + 1,
+                stato: i + 1 < livello ? 'fatto' : i + 1 == livello ? 'corrente' : 'chiuso',
+                fatte: sfide.where((s) => s['livello'] == i + 1 && fatte.containsKey(s['chiave'])).length,
+                totale: sfide.where((s) => s['livello'] == i + 1).length,
+                onTap: i + 1 > livello
+                    ? () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Completa le sfide del livello precedente per sbloccarlo.')))
+                    : () => mostraLivello(context, i + 1, io, sfide.where((s) => s['livello'] == i + 1).toList(), fatte, aggiorna, vaiAlleSfide),
+              ),
+            ),
+        ]),
+      );
+    });
   }
 }
 
@@ -526,14 +521,17 @@ class _SchedaSfidaState extends State<_SchedaSfida> {
               icon: const Icon(Icons.share),
               label: const Text('Invita su WhatsApp'),
               onPressed: () => launchUrl(
-                  Uri.parse('https://wa.me/?text=${Uri.encodeComponent('Gioca con me a «Il Tesoro del Palio»! Scarica l\'app del Palio: $baseUrl/app/ e inserisci il mio codice ${g['codice']}')}'),
+                  Uri.parse('https://wa.me/?text=${Uri.encodeComponent('Gioca con me a «Il Tesoro del Palio»! Scarica l\'app del Palio: $baseUrl/app/ e inserisci il mio codice ${g['codice']}. Avvisami quando sei al Livello 2: avrò bisogno del tuo aiuto per passare al livello 3!')}'),
                   mode: LaunchMode.externalApplication),
             ),
           ]);
         case 'neuroni':
           final n = io['neuroni'] as Json;
           azioni.addAll([
-            Text('Memory: ${n['memory'] == null ? 'da completare' : 'fatto in ${n['memory']} s'} · Puzzle: ${n['puzzle'] == null ? 'da completare' : 'fatto in ${n['puzzle']} s'}'),
+            Text([
+              for (final (g, nome) in const [('memory', 'Memory'), ('puzzle', 'Puzzle'), ('differenze', 'Differenze')])
+                '$nome: ${n[g] == null ? 'da completare' : 'fatto in ${n[g]} s'}'
+            ].join(' · ')),
             const SizedBox(height: 8),
             FilledButton.tonal(onPressed: widget.vaiAlleSfide, child: const Text('Vai alle sfide')),
           ]);

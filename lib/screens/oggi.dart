@@ -24,16 +24,18 @@ class _Dati {
   final Edizione edizione;
   final Telecronaca? telecronaca;
   final bool tesoro; // «Il Tesoro del Palio» nelle sue date: il bottone del programma diventa quello del gioco
-  _Dati(this.edizione, this.telecronaca, this.tesoro);
+  final bool pubblico; // false («Accesso pubblico» spento nel pannello): il bottone del gioco apre solo con 3 tocchi
+  _Dati(this.edizione, this.telecronaca, this.tesoro, this.pubblico);
 }
 
 Future<_Dati> _carica() async {
   // la telecronaca e' un di piu': se non arriva la Home si mostra lo stesso
   final tele = _provaTelecronaca.isNotEmpty ? Future.value(Telecronaca(_provaTelecronaca, DateTime.now())) : Api.instance.telecronaca().catchError((_) => null);
   // anche il Tesoro e' un di piu': senza risposta il bottone resta quello del programma
-  final tesoro = TesoroApi.instance.config().then((c) => c['attivo'] == true).catchError((_) => false);
+  final tesoro = TesoroApi.instance.config().then<Json?>((c) => c).catchError((_) => null);
   final r = await Future.wait<Object?>([Api.instance.edizione(), tele, tesoro]);
-  return _Dati(r[0] as Edizione, r[1] as Telecronaca?, r[2] as bool);
+  final t = r[2] as Json?;
+  return _Dati(r[0] as Edizione, r[1] as Telecronaca?, t?['attivo'] == true, t?['pubblico'] != false);
 }
 
 /// Scheda Home: una sola schermata, la foto della piazza con la scritta del Palio, il motto, le date, il pulsante
@@ -59,7 +61,7 @@ class PaginaOggi extends StatelessWidget {
                 costruisci: (context, d) => ListView(
                   physics: const AlwaysScrollableScrollPhysics(),
                   padding: EdgeInsets.zero,
-                  children: [_Copertina(edizione: d.edizione, telecronaca: d.telecronaca, tesoro: d.tesoro, altezza: alto)],
+                  children: [_Copertina(edizione: d.edizione, telecronaca: d.telecronaca, tesoro: d.tesoro, pubblico: d.pubblico, altezza: alto)],
                 ),
               ),
             ]);
@@ -180,9 +182,9 @@ class _SfondiState extends State<_Sfondi> {
 class _Copertina extends StatelessWidget {
   final Edizione edizione;
   final Telecronaca? telecronaca;
-  final bool tesoro;
+  final bool tesoro, pubblico;
   final double altezza;
-  const _Copertina({required this.edizione, required this.telecronaca, required this.tesoro, required this.altezza});
+  const _Copertina({required this.edizione, required this.telecronaca, required this.tesoro, required this.pubblico, required this.altezza});
 
   void _apri(BuildContext context, Widget pagina) => Navigator.of(context).push(MaterialPageRoute(builder: (_) => pagina));
 
@@ -262,7 +264,7 @@ class _Copertina extends StatelessWidget {
                   SizedBox(
                     height: 54,
                     child: Row(children: [
-                      Expanded(flex: 3, child: _BottoneProgramma(tesoro: tesoro)),
+                      Expanded(flex: 3, child: _BottoneProgramma(tesoro: tesoro, pubblico: pubblico)),
                       const SizedBox(width: 10),
                       Expanded(
                         flex: 2,
@@ -598,8 +600,8 @@ class _SchedaTelecronaca extends StatelessWidget {
 /// del Palio». Fuori dalle date il gioco si apre con 4 tocchi di fila (prove dello staff): per questo il programma si
 /// apre un attimo dopo l'ultimo tocco.
 class _BottoneProgramma extends StatefulWidget {
-  final bool tesoro;
-  const _BottoneProgramma({required this.tesoro});
+  final bool tesoro, pubblico;
+  const _BottoneProgramma({required this.tesoro, required this.pubblico});
   @override
   State<_BottoneProgramma> createState() => _BottoneProgrammaState();
 }
@@ -616,16 +618,22 @@ class _BottoneProgrammaState extends State<_BottoneProgramma> {
 
   void _apriTesoro() => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PaginaTesoro()));
 
+  // Nelle date del gioco il bottone apre il Tesoro (con l'accesso pubblico spento solo dopo 3 tocchi di fila, per le
+  // prove dello staff); fuori dalle date apre il programma, e 4 tocchi di fila aprono il Tesoro.
   void _tocca() {
-    if (widget.tesoro) return _apriTesoro();
+    if (widget.tesoro && widget.pubblico) return _apriTesoro();
     _attesa?.cancel();
-    if (++_tocchi >= 4) {
+    if (++_tocchi >= (widget.tesoro ? 3 : 4)) {
       _tocchi = 0;
       return _apriTesoro();
     }
     _attesa = Timer(const Duration(milliseconds: 450), () {
       _tocchi = 0;
-      schedaHome.value = 1;
+      if (!widget.tesoro) {
+        schedaHome.value = 1;
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Il Tesoro del Palio sta per cominciare: torna a trovarci presto!')));
+      }
     });
   }
 
