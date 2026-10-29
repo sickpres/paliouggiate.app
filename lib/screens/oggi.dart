@@ -10,6 +10,8 @@ import '../api.dart';
 import '../models.dart';
 import '../tema.dart';
 import '../widgets/comuni.dart';
+import '../tesoro/api_tesoro.dart';
+import '../tesoro/pagina_tesoro.dart';
 import '../widgets/icone_tratto.dart';
 import 'documenti.dart';
 import 'home.dart';
@@ -21,14 +23,17 @@ const _provaTelecronaca = String.fromEnvironment('PROVA_TELECRONACA');
 class _Dati {
   final Edizione edizione;
   final Telecronaca? telecronaca;
-  _Dati(this.edizione, this.telecronaca);
+  final bool tesoro; // «Il Tesoro del Palio» nelle sue date: il bottone del programma diventa quello del gioco
+  _Dati(this.edizione, this.telecronaca, this.tesoro);
 }
 
 Future<_Dati> _carica() async {
   // la telecronaca e' un di piu': se non arriva la Home si mostra lo stesso
   final tele = _provaTelecronaca.isNotEmpty ? Future.value(Telecronaca(_provaTelecronaca, DateTime.now())) : Api.instance.telecronaca().catchError((_) => null);
-  final r = await Future.wait<Object?>([Api.instance.edizione(), tele]);
-  return _Dati(r[0] as Edizione, r[1] as Telecronaca?);
+  // anche il Tesoro e' un di piu': senza risposta il bottone resta quello del programma
+  final tesoro = TesoroApi.instance.config().then((c) => c['attivo'] == true).catchError((_) => false);
+  final r = await Future.wait<Object?>([Api.instance.edizione(), tele, tesoro]);
+  return _Dati(r[0] as Edizione, r[1] as Telecronaca?, r[2] as bool);
 }
 
 /// Scheda Home: una sola schermata, la foto della piazza con la scritta del Palio, il motto, le date, il pulsante
@@ -54,7 +59,7 @@ class PaginaOggi extends StatelessWidget {
                 costruisci: (context, d) => ListView(
                   physics: const AlwaysScrollableScrollPhysics(),
                   padding: EdgeInsets.zero,
-                  children: [_Copertina(edizione: d.edizione, telecronaca: d.telecronaca, altezza: alto)],
+                  children: [_Copertina(edizione: d.edizione, telecronaca: d.telecronaca, tesoro: d.tesoro, altezza: alto)],
                 ),
               ),
             ]);
@@ -175,8 +180,9 @@ class _SfondiState extends State<_Sfondi> {
 class _Copertina extends StatelessWidget {
   final Edizione edizione;
   final Telecronaca? telecronaca;
+  final bool tesoro;
   final double altezza;
-  const _Copertina({required this.edizione, required this.telecronaca, required this.altezza});
+  const _Copertina({required this.edizione, required this.telecronaca, required this.tesoro, required this.altezza});
 
   void _apri(BuildContext context, Widget pagina) => Navigator.of(context).push(MaterialPageRoute(builder: (_) => pagina));
 
@@ -256,20 +262,7 @@ class _Copertina extends StatelessWidget {
                   SizedBox(
                     height: 54,
                     child: Row(children: [
-                      Expanded(
-                        flex: 3,
-                        child: FilledButton(
-                          style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(54), padding: const EdgeInsets.symmetric(horizontal: 12)),
-                          onPressed: () => schedaHome.value = 1,
-                          child: const FittedBox(
-                            child: Row(mainAxisSize: MainAxisSize.min, children: [
-                              Text('Scopri il programma'),
-                              SizedBox(width: 8),
-                              Icon(Icons.arrow_forward, size: 22),
-                            ]),
-                          ),
-                        ),
-                      ),
+                      Expanded(flex: 3, child: _BottoneProgramma(tesoro: tesoro)),
                       const SizedBox(width: 10),
                       Expanded(
                         flex: 2,
@@ -595,6 +588,57 @@ class _SchedaTelecronaca extends StatelessWidget {
             const SizedBox(height: 8),
             Text(q, style: t.textTheme.bodySmall?.copyWith(color: Colors.white70)),
           ],
+        ]),
+      ),
+    );
+  }
+}
+
+/// Bottone principale della Home: «Scopri il programma» (scheda Calendario) oppure, nelle date del gioco, «Il Tesoro
+/// del Palio». Fuori dalle date il gioco si apre con 4 tocchi di fila (prove dello staff): per questo il programma si
+/// apre un attimo dopo l'ultimo tocco.
+class _BottoneProgramma extends StatefulWidget {
+  final bool tesoro;
+  const _BottoneProgramma({required this.tesoro});
+  @override
+  State<_BottoneProgramma> createState() => _BottoneProgrammaState();
+}
+
+class _BottoneProgrammaState extends State<_BottoneProgramma> {
+  int _tocchi = 0;
+  Timer? _attesa;
+
+  @override
+  void dispose() {
+    _attesa?.cancel();
+    super.dispose();
+  }
+
+  void _apriTesoro() => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PaginaTesoro()));
+
+  void _tocca() {
+    if (widget.tesoro) return _apriTesoro();
+    _attesa?.cancel();
+    if (++_tocchi >= 4) {
+      _tocchi = 0;
+      return _apriTesoro();
+    }
+    _attesa = Timer(const Duration(milliseconds: 450), () {
+      _tocchi = 0;
+      schedaHome.value = 1;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FilledButton(
+      style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(54), padding: const EdgeInsets.symmetric(horizontal: 12)),
+      onPressed: _tocca,
+      child: FittedBox(
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Text(widget.tesoro ? 'Il Tesoro del Palio' : 'Scopri il programma'),
+          const SizedBox(width: 8),
+          Icon(widget.tesoro ? Icons.diamond_outlined : Icons.arrow_forward, size: 22),
         ]),
       ),
     );

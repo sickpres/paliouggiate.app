@@ -75,5 +75,9 @@
 	</array>
 	<key>UIRequiresFullScreen</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Nel gioco «Il Tesoro del Palio» la fotocamera serve per inquadrare i QR e scattare le foto delle sfide.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Nel gioco «Il Tesoro del Palio» la posizione serve a verificare che tu sia sul posto quando completi una sfida (l'oggetto misterioso, il tavolo del bar).</string>
 </dict>
 </plist>
