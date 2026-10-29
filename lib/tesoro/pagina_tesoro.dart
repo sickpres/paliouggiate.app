@@ -535,16 +535,14 @@ class _SchedaSfidaState extends State<_SchedaSfida> {
     if (ok == true) await widget.aggiorna();
   }
 
-  // «Affina l'occhio»: QR dell'oggetto, poi la foto, poi la posizione
+  // «Affina l'occhio»: la foto scattata vicino all'oggetto, con la posizione del telefono
   Future<bool?> _occhio() async {
-    final qr = await leggiQr(context);
-    if (qr == null || !mounted) return null;
     final foto = await prova(context, scattaFoto);
     if (foto == null || !mounted) return null;
     return prova(context, () async {
       final pos = await posizioneAttuale();
       final id = await TesoroApi.instance.caricaFoto('occhio', foto);
-      await TesoroApi.instance.occhio(qr, pos, id);
+      await TesoroApi.instance.occhio(pos, id);
       return true;
     });
   }
@@ -604,7 +602,7 @@ class _SchedaSfidaState extends State<_SchedaSfida> {
               : [
                   ClipRRect(borderRadius: BorderRadius.circular(16), child: Image.network(TesoroApi.instance.indirizzo(o['foto'] as String), fit: BoxFit.cover)),
                   const SizedBox(height: 8),
-                  FilledButton.icon(icon: const Icon(Icons.qr_code_scanner), label: const Text('Ho trovato l\'oggetto'), onPressed: _lavoro ? null : () => _esegui(_occhio)),
+                  FilledButton.icon(icon: const Icon(Icons.photo_camera), label: const Text('Fotografa l\'oggetto'), onPressed: _lavoro ? null : () => _esegui(_occhio)),
                 ]);
         case 'enigma':
           final e = io['enigma'] as Json?;

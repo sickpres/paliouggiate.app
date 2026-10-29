@@ -98,7 +98,7 @@ class TesoroApi {
 
   Future<Json> iniziaSfida(String gioco) async => _m(await _chiama('POST', '/sfide/$gioco', {}));
   Future<Json> fineSfida(String gioco, String partita) async => _m(await _chiama('POST', '/sfide/$gioco', {'partita': partita}));
-  Future<Json> occhio(String codice, Json pos, int foto) async => _m(await _chiama('POST', '/occhio', {'codice': codice, 'foto_id': foto, ...pos}));
+  Future<Json> occhio(Json pos, int foto) async => _m(await _chiama('POST', '/occhio', {'foto_id': foto, ...pos}));
   Future<Json> enigma(String parola) async => _m(await _chiama('POST', '/enigma', {'parola': parola}));
   Future<Json> tavolo(String azione, [Json corpo = const {}]) async => _m(await _chiama('POST', '/tavolo/$azione', corpo));
   Future<Json> tesoro(String codice) async => _m(await _chiama('POST', '/tesoro', {'codice': codice}));
@@ -147,7 +147,8 @@ Future<Json> posizioneAttuale() async {
       : const LocationSettings(accuracy: LocationAccuracy.high, timeLimit: Duration(seconds: 15));
   Position? x;
   try {
-    x = await Geolocator.getCurrentPosition(locationSettings: impostazioni);
+    // limite anche nostro: quello di geolocator a volte non scatta e la richiesta resterebbe appesa
+    x = await Geolocator.getCurrentPosition(locationSettings: impostazioni).timeout(const Duration(seconds: 18));
   } on TimeoutException {
     // al chiuso il GPS puo' non rispondere: va bene l'ultima posizione nota
     x = await Geolocator.getLastKnownPosition(forceAndroidLocationManager: true);
