@@ -17,8 +17,8 @@ import 'sfide.dart';
 import 'tavolo.dart';
 
 /// «Il Tesoro del Palio»: si apre dal bottone della Home. Al primo accesso si scelgono rione e avatar; poi in alto
-/// restano avatar e rione (a sinistra) e la casetta per tornare alla Home (a destra); in basso Mappa, Sfide,
-/// Classifica e Amici del Palio.
+/// restano avatar e rione (a sinistra) e la casetta per tornare alla Home (a destra); in basso Mappa, Classifica,
+/// Sfide e Amici del Palio.
 class PaginaTesoro extends StatefulWidget {
   const PaginaTesoro({super.key});
   @override
@@ -32,7 +32,7 @@ class _PaginaTesoroState extends State<PaginaTesoro> {
   bool _iscritto = false;
   bool _caricato = false;
   bool _posizioneBloccata = false;
-  int _scheda = 1; // 0 Info, 1 Mappa, 2 Sfide, 3 Classifica, 4 Amici: si apre sulla Mappa
+  int _scheda = 1; // 0 Info, 1 Mappa, 2 Classifica, 3 Sfide, 4 Amici: si apre sulla Mappa
   int _giro = 0; // cambia a ogni apertura di Classifica e Amici, cosi' si ricaricano
 
   @override
@@ -100,9 +100,9 @@ class _PaginaTesoroState extends State<PaginaTesoro> {
     final g = _io!['giocatore'] as Json;
     final pagine = [
       PaginaInfo(cfg: _cfg!),
-      _Mappa(io: _io!, cfg: _cfg!, aggiorna: aggiorna, vaiAlleSfide: () => setState(() => _scheda = 2)),
-      PaginaSfide(io: _io!, aggiorna: aggiorna),
+      _Mappa(io: _io!, cfg: _cfg!, aggiorna: aggiorna, vaiAlleSfide: () => setState(() => _scheda = 3)),
       ClassificaTesoro(key: ValueKey('c$_giro')),
+      PaginaSfide(io: _io!, aggiorna: aggiorna),
       AmiciDelPalio(key: ValueKey('a$_giro')),
     ];
     return Scaffold(
@@ -145,13 +145,13 @@ class _PaginaTesoroState extends State<PaginaTesoro> {
         selectedIndex: _scheda,
         onDestinationSelected: (i) {
           setState(() => (_scheda = i, _giro++));
-          if (i == 1 || i == 2) _carica();
+          if (i == 1 || i == 3) _carica();
         },
         destinations: const [
           NavigationDestination(icon: Icon(Icons.info_outline), selectedIcon: Icon(Icons.info), label: 'Info'),
           NavigationDestination(icon: Icon(Icons.map_outlined), selectedIcon: Icon(Icons.map), label: 'Mappa'),
-          NavigationDestination(icon: Icon(Icons.extension_outlined), selectedIcon: Icon(Icons.extension), label: 'Sfide'),
           NavigationDestination(icon: Icon(Icons.emoji_events_outlined), selectedIcon: Icon(Icons.emoji_events), label: 'Classifica'),
+          NavigationDestination(icon: Icon(Icons.extension_outlined), selectedIcon: Icon(Icons.extension), label: 'Sfide'),
           NavigationDestination(icon: Icon(Icons.storefront_outlined), selectedIcon: Icon(Icons.storefront), label: 'Amici'),
         ],
       ),
