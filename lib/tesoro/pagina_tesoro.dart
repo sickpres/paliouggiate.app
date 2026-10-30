@@ -702,7 +702,7 @@ class _Punti extends StatelessWidget {
   }
 }
 
-/// Il frammento della pergamena a tutto schermo, senza spiegazioni: va affiancato a quelli degli altri tre.
+/// Il frammento della pergamena a tutto schermo, senza spiegazioni: va affiancato a quelli degli altri del tavolo.
 class PaginaFrammento extends StatelessWidget {
   final String foto; // indirizzo del frammento (cambia con la pergamena, cosi' non resta in cache quello vecchio)
   const PaginaFrammento({super.key, required this.foto});

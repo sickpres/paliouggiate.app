@@ -253,12 +253,26 @@ class AvvisoPermessi extends StatelessWidget {
 }
 
 /// Esegue un'azione del gioco mostrando gli errori in una barra in basso; restituisce il risultato o null.
+/// Dentro le schede delle sfide (pannello che sale dal basso) la barra finirebbe sotto il pannello, invisibile:
+/// li' l'errore si mostra in una finestra (es. «Non barare!»).
 Future<T?> prova<T>(BuildContext context, Future<T> Function() fn) async {
   final avvisi = ScaffoldMessenger.of(context);
+  final nelPannello = ModalRoute.of(context) is ModalBottomSheetRoute;
   try {
     return await fn();
   } catch (e) {
-    avvisi.showSnackBar(SnackBar(content: Text(e is ApiException || e is PermessoNegato ? e.toString() : 'Qualcosa è andato storto. Riprova.')));
+    final testo = e is ApiException || e is PermessoNegato ? e.toString() : 'Qualcosa è andato storto. Riprova.';
+    if (nelPannello && context.mounted) {
+      await showDialog<void>(
+        context: context,
+        builder: (c) => AlertDialog(
+          content: Text(testo, style: const TextStyle(fontSize: 17)),
+          actions: [TextButton(onPressed: () => Navigator.of(c).pop(), child: const Text('OK'))],
+        ),
+      );
+    } else {
+      avvisi.showSnackBar(SnackBar(content: Text(testo)));
+    }
     return null;
   }
 }
