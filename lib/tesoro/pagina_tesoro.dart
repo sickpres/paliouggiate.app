@@ -580,8 +580,8 @@ class _SchedaSfidaState extends State<_SchedaSfida> {
         case 'bar':
           azioni.add(io['fatte'] is Map && (io['fatte'] as Json).containsKey('enigma')
               ? FilledButton.icon(
-                  icon: const Icon(Icons.local_bar),
-                  label: const Text('Al tavolo'),
+                  icon: const Icon(Icons.terrain_rounded),
+                  label: const Text('Al Campo base'),
                   onPressed: () async {
                     await Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PaginaTavolo()));
                     await widget.aggiorna();
@@ -653,7 +653,7 @@ const _iconeSfide = {
   'neuroni': Icons.psychology_rounded,
   'occhio': Icons.visibility_rounded,
   'enigma': Icons.key_rounded,
-  'bar': Icons.local_bar_rounded,
+  'bar': Icons.terrain_rounded,
   'frammenti': Icons.map_rounded,
 };
 const _livelloSfide = {'diffondi': 1, 'neuroni': 1, 'occhio': 1, 'enigma': 2, 'bar': 2, 'frammenti': 3};

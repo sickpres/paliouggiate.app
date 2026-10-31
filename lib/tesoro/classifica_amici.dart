@@ -110,7 +110,7 @@ class _ClassificaTesoroState extends State<ClassificaTesoro> {
   }
 }
 
-/// «Amici del Palio»: gli sponsor; i bar dove si gioca il livello 2 hanno indirizzo e indicazioni.
+/// «Amici del Palio»: l'elenco degli sponsor, con l'indirizzo quando c'è.
 class AmiciDelPalio extends StatelessWidget {
   const AmiciDelPalio({super.key});
 
@@ -120,12 +120,9 @@ class AmiciDelPalio extends StatelessWidget {
       carica: TesoroApi.instance.amici,
       costruisci: (context, amici) {
         if (amici.isEmpty) return ListView(children: const [Messaggio(icona: Icons.storefront_outlined, titolo: 'Gli Amici del Palio arriveranno presto')]);
-        final bar = amici.where((a) => a['bar'] == true).toList(), altri = amici.where((a) => a['bar'] != true).toList();
         return ListView(padding: const EdgeInsets.only(bottom: 16), children: [
-          if (bar.isNotEmpty) const Sezione('I bar del tesoro'),
-          for (final a in bar) _Amico(a),
-          if (altri.isNotEmpty) const Sezione('Gli altri amici'),
-          for (final a in altri) _Amico(a),
+          const Sezione('Gli sponsor del Palio'),
+          for (final a in amici) _Amico(a),
         ]);
       },
     );
@@ -160,11 +157,12 @@ class _Amico extends StatelessWidget {
                 if ('${a['indirizzo']}'.isNotEmpty) Text('${a['indirizzo']}', style: Theme.of(context).textTheme.bodySmall),
               ]),
             ),
-            if (a['bar'] == true && a['lat'] != null)
+            if ('${a['indirizzo']}'.isNotEmpty)
               IconButton(
                 tooltip: 'Indicazioni',
                 icon: const Icon(Icons.directions, color: oroScuro),
-                onPressed: () => launchUrl(Uri.parse('https://www.google.com/maps/dir/?api=1&destination=${a['lat']},${a['lng']}'), mode: LaunchMode.externalApplication),
+                onPressed: () => launchUrl(Uri.parse('https://www.google.com/maps/dir/?api=1&destination=${Uri.encodeComponent('${a['indirizzo']}')}'),
+                    mode: LaunchMode.externalApplication),
               ),
           ]),
         ),
