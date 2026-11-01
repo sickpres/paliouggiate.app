@@ -150,7 +150,6 @@ const opzioniEta = [
   OpzioneFiltro<String>(null, 'Tutti'),
   OpzioneFiltro<String>('bambini', 'Bambini'),
   OpzioneFiltro<String>('adulti', 'Adulti e ragazzi'),
-  OpzioneFiltro<String>('anziani', 'Anziani'),
 ];
 
 // solo per le schermate di prova nel simulatore: --dart-define=PROVA_ETA=bambini sceglie l'eta' in Calendario e Giochi

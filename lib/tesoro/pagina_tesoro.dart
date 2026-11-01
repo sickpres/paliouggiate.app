@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -11,14 +12,14 @@ import '../push.dart' show chiaveRione;
 import '../tema.dart';
 import '../widgets/comuni.dart';
 import 'api_tesoro.dart';
-import 'classifica_amici.dart';
+import 'classifica.dart';
 import 'info.dart';
 import 'sfide.dart';
 import 'tavolo.dart';
 
 /// «Il Tesoro del Palio»: si apre dal bottone della Home. Al primo accesso si scelgono rione e avatar; poi in alto
-/// restano avatar e rione (a sinistra) e la casetta per tornare alla Home (a destra); in basso Mappa, Classifica,
-/// Sfide e Amici del Palio.
+/// restano avatar e rione (a sinistra) e la casetta per tornare alla Home (a destra); in basso Info, Mappa, Classifica
+/// e Sfide (fino alla build 17 anche gli Amici del Palio).
 class PaginaTesoro extends StatefulWidget {
   const PaginaTesoro({super.key});
   @override
@@ -32,8 +33,8 @@ class _PaginaTesoroState extends State<PaginaTesoro> {
   bool _iscritto = false;
   bool _caricato = false;
   bool _posizioneBloccata = false;
-  int _scheda = 1; // 0 Info, 1 Mappa, 2 Classifica, 3 Sfide, 4 Amici: si apre sulla Mappa
-  int _giro = 0; // cambia a ogni apertura di Classifica e Amici, cosi' si ricaricano
+  int _scheda = 1; // 0 Info, 1 Mappa, 2 Classifica, 3 Sfide: si apre sulla Mappa
+  int _giro = 0; // cambia a ogni apertura della Classifica, cosi' si ricarica
 
   @override
   void initState() {
@@ -103,7 +104,6 @@ class _PaginaTesoroState extends State<PaginaTesoro> {
       _Mappa(io: _io!, cfg: _cfg!, aggiorna: aggiorna, vaiAlleSfide: () => setState(() => _scheda = 3)),
       ClassificaTesoro(key: ValueKey('c$_giro')),
       PaginaSfide(io: _io!, aggiorna: aggiorna),
-      AmiciDelPalio(key: ValueKey('a$_giro')),
     ];
     return Scaffold(
       appBar: AppBar(
@@ -152,7 +152,6 @@ class _PaginaTesoroState extends State<PaginaTesoro> {
           NavigationDestination(icon: Icon(Icons.map_outlined), selectedIcon: Icon(Icons.map), label: 'Mappa'),
           NavigationDestination(icon: Icon(Icons.emoji_events_outlined), selectedIcon: Icon(Icons.emoji_events), label: 'Classifica'),
           NavigationDestination(icon: Icon(Icons.extension_outlined), selectedIcon: Icon(Icons.extension), label: 'Sfide'),
-          NavigationDestination(icon: Icon(Icons.storefront_outlined), selectedIcon: Icon(Icons.storefront), label: 'Amici'),
         ],
       ),
     );
@@ -463,6 +462,10 @@ class _SchedaSfida extends StatefulWidget {
 class _SchedaSfidaState extends State<_SchedaSfida> {
   final _testo = TextEditingController();
   bool _lavoro = false;
+  bool _copiato = false; // «Copia messaggio» appena toccato
+
+  String _messaggioInvito(Json g) => 'Gioca con me a «Il Tesoro del Palio»! Scarica l\'app del Palio: $baseUrl/app/ e inserisci il mio codice '
+      '${g['codice']}. Avvisami quando sei al Livello 2: avrò bisogno del tuo aiuto per passare al livello 3!';
 
   Future<void> _esegui(Future<bool?> Function() fn) async {
     setState(() => _lavoro = true);
@@ -520,13 +523,26 @@ class _SchedaSfidaState extends State<_SchedaSfida> {
             FilledButton.tonalIcon(
               icon: const Icon(Icons.share),
               label: const Text('Invita su WhatsApp'),
-              onPressed: () => launchUrl(
-                  Uri.parse('https://wa.me/?text=${Uri.encodeComponent('Gioca con me a «Il Tesoro del Palio»! Scarica l\'app del Palio: $baseUrl/app/ e inserisci il mio codice ${g['codice']}. Avvisami quando sei al Livello 2: avrò bisogno del tuo aiuto per passare al livello 3!')}'),
-                  mode: LaunchMode.externalApplication),
+              onPressed: () => launchUrl(Uri.parse('https://wa.me/?text=${Uri.encodeComponent(_messaggioInvito(g))}'), mode: LaunchMode.externalApplication),
+            ),
+            const SizedBox(height: 8),
+            // per chi lo manda in altri modi (SMS, Telegram...): la conferma sta sul bottone, perche' una barra in basso
+            // resterebbe sotto il pannello
+            OutlinedButton.icon(
+              icon: Icon(_copiato ? Icons.check : Icons.copy_rounded),
+              label: Text(_copiato ? 'Messaggio copiato' : 'Copia messaggio'),
+              onPressed: () async {
+                await Clipboard.setData(ClipboardData(text: _messaggioInvito(g)));
+                if (!mounted) return;
+                setState(() => _copiato = true);
+                Future.delayed(const Duration(seconds: 2), () {
+                  if (mounted) setState(() => _copiato = false);
+                });
+              },
             ),
           ]);
-        case 'neuroni':
-          final n = io['neuroni'] as Json;
+        case 'neuroni' || 'impazziti':
+          final n = io[chiave] as Json? ?? {};
           azioni.addAll([
             Text([
               for (final (g, nome) in const [('memory', 'Memory'), ('puzzle', 'Puzzle'), ('differenze', 'Differenze')])
@@ -578,7 +594,10 @@ class _SchedaSfidaState extends State<_SchedaSfida> {
                   ),
                 ]);
         case 'bar':
-          azioni.add(io['fatte'] is Map && (io['fatte'] as Json).containsKey('enigma')
+          final fatte = io['fatte'] is Map ? io['fatte'] as Json : const <String, dynamic>{};
+          azioni.add(!fatte.containsKey('impazziti')
+              ? const Text('Prima completa «Neuroni impazziti».')
+              : fatte.containsKey('enigma')
               ? FilledButton.icon(
                   icon: const Icon(Icons.terrain_rounded),
                   label: const Text('Al Campo base'),
@@ -652,11 +671,12 @@ const _iconeSfide = {
   'diffondi': Icons.campaign_rounded,
   'neuroni': Icons.psychology_rounded,
   'occhio': Icons.visibility_rounded,
+  'impazziti': Icons.psychology_alt_rounded,
   'enigma': Icons.key_rounded,
   'bar': Icons.terrain_rounded,
   'frammenti': Icons.map_rounded,
 };
-const _livelloSfide = {'diffondi': 1, 'neuroni': 1, 'occhio': 1, 'enigma': 2, 'bar': 2, 'frammenti': 3};
+const _livelloSfide = {'diffondi': 1, 'neuroni': 1, 'occhio': 1, 'impazziti': 2, 'enigma': 2, 'bar': 2, 'frammenti': 3};
 
 class _IconaSfida extends StatelessWidget {
   final String chiave;

@@ -25,6 +25,7 @@ class _PaginaTavoloState extends State<PaginaTavolo> {
   Timer? _giro;
   int _tentativi = 0;
   int _posti = 4; // giocatori del tavolo (quello aperto, o quelli delle impostazioni)
+  int _salto = 450; // millisecondi fra un salto e l'altro del bottone «Invia» (dal pannello, dal 01.11.2026)
   String? _avviso;
   final _codice = TextEditingController();
   final _parole = List.generate(8, (_) => TextEditingController()); // al massimo 8 giocatori
@@ -55,6 +56,7 @@ class _PaginaTavoloState extends State<PaginaTavolo> {
         }
         if (t != null) _tentativi = t['tentativi'] as int;
         _posti = (t?['posti'] ?? io['posti_tavolo'] ?? 4) as int;
+        _salto = (io['salto_bottone'] as num? ?? 450).toInt();
         _tavolo = t;
         _caricato = true;
       });
@@ -168,7 +170,7 @@ class _PaginaTavoloState extends State<PaginaTavolo> {
         child: Text(_avviso ?? (mio?['tocco'] == true ? 'Preso! Aspettate gli altri…' : 'Tutti insieme: al «via» toccate il bottone «Invia»!'),
             textAlign: TextAlign.center, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
       ),
-      Expanded(child: _BottoneUbriaco(onTocco: _brinda)),
+      Expanded(child: _BottoneUbriaco(onTocco: _brinda, salto: _salto)),
       Padding(
         padding: const EdgeInsets.only(bottom: 12),
         child: Text('Hanno toccato: ${(t['membri'] as List).where((m) => (m as Map)['tocco'] == true).length} su $_posti'),
@@ -215,10 +217,11 @@ class _PaginaTavoloState extends State<PaginaTavolo> {
   }
 }
 
-/// Il bottone «Invia» che scappa: cambia posto ogni 450 millisecondi.
+/// Il bottone «Invia» che scappa: cambia posto ogni [salto] millisecondi (450 all'inizio; si sceglie nel pannello).
 class _BottoneUbriaco extends StatefulWidget {
   final VoidCallback onTocco;
-  const _BottoneUbriaco({required this.onTocco});
+  final int salto;
+  const _BottoneUbriaco({required this.onTocco, required this.salto});
   @override
   State<_BottoneUbriaco> createState() => _BottoneUbriacoState();
 }
@@ -231,7 +234,19 @@ class _BottoneUbriacoState extends State<_BottoneUbriaco> {
   @override
   void initState() {
     super.initState();
-    _timer = Timer.periodic(const Duration(milliseconds: 450), (_) {
+    _parti();
+  }
+
+  // il ritmo cambia se il pannello lo cambia mentre si gioca (lo stato si rilegge ogni 2 secondi)
+  @override
+  void didUpdateWidget(_BottoneUbriaco prima) {
+    super.didUpdateWidget(prima);
+    if (prima.salto != widget.salto) _parti();
+  }
+
+  void _parti() {
+    _timer?.cancel();
+    _timer = Timer.periodic(Duration(milliseconds: widget.salto), (_) {
       if (mounted) setState(() => _dove = Alignment(_caso.nextDouble() * 2 - 1, _caso.nextDouble() * 2 - 1));
     });
   }
@@ -248,7 +263,7 @@ class _BottoneUbriacoState extends State<_BottoneUbriaco> {
       padding: const EdgeInsets.all(16),
       child: AnimatedAlign(
         alignment: _dove,
-        duration: const Duration(milliseconds: 380),
+        duration: Duration(milliseconds: (widget.salto * 0.85).round()), // come prima: 380 su 450
         curve: Curves.easeInOutBack,
         child: FilledButton(
           style: FilledButton.styleFrom(backgroundColor: oro, padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 18)),

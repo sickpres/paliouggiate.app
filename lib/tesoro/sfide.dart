@@ -7,17 +7,19 @@ import 'package:flutter/material.dart';
 import '../tema.dart';
 import 'api_tesoro.dart';
 
-// Sfide del livello 1 («Riscalda i neuroni»): Memory e Puzzle (4 colonne per 5 righe) e Differenze, entro il tempo
-// scelto nel pannello. Il tempo lo misura il portale (dall'inizio alla fine della partita); qui c'e' il conto alla rovescia.
+// Memory e Puzzle (4 colonne per 5 righe) e Differenze, entro il tempo scelto nel pannello: al livello 1 sono
+// «Riscalda i neuroni», al livello 2 di nuovo, con i tempi del livello 2, «Neuroni impazziti» (dal 01.11.2026).
+// Il tempo lo misura il portale (dall'inizio alla fine della partita); qui c'e' il conto alla rovescia.
 
 class PaginaSfide extends StatelessWidget {
   final Json io;
   final Future<void> Function() aggiorna;
   const PaginaSfide({super.key, required this.io, required this.aggiorna});
 
+  int get _livello => (io['giocatore'] as Json)['livello'] as int;
+
   Future<void> _gioca(BuildContext context, String gioco) async {
-    final livello = (io['giocatore'] as Json)['livello'] as int;
-    if (livello != 1) {
+    if (_livello > 2) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Le sfide sono già completate: ora si gioca sulla mappa.')));
       return;
     }
@@ -34,10 +36,16 @@ class PaginaSfide extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final n = io['neuroni'] as Json;
+    // dal livello 2 in poi i risultati di «Neuroni impazziti»
+    final n = (_livello >= 2 ? io['impazziti'] : io['neuroni']) as Json;
     final tempi = n['tempi'] as Json;
     String stato(String g) => n[g] == null ? '${tempi[g]} secondi: ce la fai?' : 'Fatto in ${n[g]} secondi';
     return ListView(padding: const EdgeInsets.all(16), children: [
+      Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Text(_livello >= 2 ? 'Neuroni impazziti · livello 2' : 'Riscalda i neuroni · livello 1',
+            style: const TextStyle(fontFamily: fontTitoli, fontSize: 22, fontWeight: FontWeight.w800)),
+      ),
       _Riquadro(titolo: 'Memory', icona: Icons.style, sotto: stato('memory'), fatto: n['memory'] != null, onTap: () => _gioca(context, 'memory')),
       const SizedBox(height: 16),
       _Riquadro(titolo: 'Puzzle', icona: Icons.extension, sotto: stato('puzzle'), fatto: n['puzzle'] != null, onTap: () => _gioca(context, 'puzzle')),
@@ -398,6 +406,7 @@ class _PaginaMemoryState extends State<PaginaMemory> with _ContoAllaRovescia {
 }
 
 // ---------- Puzzle: 20 pezzi da rimettere a posto scambiandoli con due tocchi ----------
+// «Suggerimento» (dal 01.11.2026) mostra l'immagine ricomposta per 1 secondo, al massimo 3 volte; il tempo intanto corre.
 class PaginaPuzzle extends StatefulWidget {
   final Json partita;
   const PaginaPuzzle({super.key, required this.partita});
@@ -413,6 +422,24 @@ class _PaginaPuzzleState extends State<PaginaPuzzle> with _ContoAllaRovescia {
   late final int _totale;
   // all'inizio l'immagine si vede intera per 2 secondi (il portale non li conta), poi si mescola e parte il tempo
   bool _anteprima = true;
+  static const _maxSuggerimenti = 3;
+  int _suggerimenti = 0; // usati
+  bool _suggerimento = false; // immagine ricomposta in questo momento
+  Timer? _fineSuggerimento;
+
+  void _suggerisci() {
+    if (finita || _anteprima || _suggerimento || _suggerimenti >= _maxSuggerimenti) return;
+    setState(() => (_suggerimento = true, _suggerimenti++, _scelto = null));
+    _fineSuggerimento = Timer(const Duration(seconds: 1), () {
+      if (mounted) setState(() => _suggerimento = false);
+    });
+  }
+
+  @override
+  void dispose() {
+    _fineSuggerimento?.cancel();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -444,7 +471,7 @@ class _PaginaPuzzleState extends State<PaginaPuzzle> with _ContoAllaRovescia {
   }
 
   void _tocca(int posto) {
-    if (finita || _anteprima) return;
+    if (finita || _anteprima || _suggerimento) return;
     if (_scelto == null) return setState(() => _scelto = posto);
     if (_scelto == posto) return setState(() => _scelto = null);
     setState(() {
@@ -480,7 +507,7 @@ class _PaginaPuzzleState extends State<PaginaPuzzle> with _ContoAllaRovescia {
                               // il bordo del pezzo scelto sta sopra l'immagine, cosi' non la stringe
                               foregroundDecoration: _scelto == posto ? BoxDecoration(border: Border.all(color: oro, width: 4)) : null,
                               decoration: BoxDecoration(boxShadow: _scelto == posto ? const [BoxShadow(color: oro, blurRadius: 12)] : null),
-                              child: CustomPaint(painter: _Pezzo(_immagine!, _anteprima ? posto : _pezzi[posto], _colonne, _righe)),
+                              child: CustomPaint(painter: _Pezzo(_immagine!, _anteprima || _suggerimento ? posto : _pezzi[posto], _colonne, _righe)),
                             ),
                           ),
                         );
@@ -493,6 +520,14 @@ class _PaginaPuzzleState extends State<PaginaPuzzle> with _ContoAllaRovescia {
                     );
                   }),
                 ),
+        ),
+        Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: OutlinedButton.icon(
+            icon: const Icon(Icons.lightbulb_outline),
+            label: Text('Suggerimento (${_maxSuggerimenti - _suggerimenti})'),
+            onPressed: _immagine == null || _anteprima || _suggerimento || finita || _suggerimenti >= _maxSuggerimenti ? null : _suggerisci,
+          ),
         ),
         barraTempo(_totale),
       ]),

@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../models.dart';
-import '../tema.dart';
 import '../widgets/comuni.dart';
 import 'api_tesoro.dart';
 
 /// Classifica del Tesoro, come la classifica vera: una scheda con una riga per rione (posizione, coppa per il primo,
-/// stemma, punti) oppure per giocatore (avatar, stemma del rione). A parita' di punti stessa posizione.
+/// stemma, punti) oppure per giocatore (avatar, stemma del rione). La posizione arriva dal portale: a parita' di punti
+/// viene prima chi ha trovato il tesoro prima (dal 01.11.2026); senza, stessa posizione a parita' di punti.
 class ClassificaTesoro extends StatefulWidget {
   const ClassificaTesoro({super.key});
   @override
@@ -54,7 +53,9 @@ class _ClassificaTesoroState extends State<ClassificaTesoro> {
             if (righe.isEmpty) {
               return ListView(children: const [Messaggio(icona: Icons.emoji_events_outlined, titolo: 'Ancora nessun giocatore')]);
             }
-            final pos = _posizioni([for (final x in righe) (x['punti'] as num).toInt()]);
+            final pos = righe.every((x) => x['posizione'] is num)
+                ? [for (final x in righe) (x['posizione'] as num).toInt()]
+                : _posizioni([for (final x in righe) (x['punti'] as num).toInt()]);
             final iniziata = righe.any((x) => (x['punti'] as num) > 0);
             // posizione (coppa per il primo, trattino finche' nessuno ha punti) e stemma o avatar
             Widget inizio(int i, Widget segno) => SizedBox(
@@ -107,66 +108,5 @@ class _ClassificaTesoroState extends State<ClassificaTesoro> {
         ),
       ),
     ]);
-  }
-}
-
-/// «Amici del Palio»: l'elenco degli sponsor, con l'indirizzo quando c'è.
-class AmiciDelPalio extends StatelessWidget {
-  const AmiciDelPalio({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return DatiRemoti<List<Json>>(
-      carica: TesoroApi.instance.amici,
-      costruisci: (context, amici) {
-        if (amici.isEmpty) return ListView(children: const [Messaggio(icona: Icons.storefront_outlined, titolo: 'Gli Amici del Palio arriveranno presto')]);
-        return ListView(padding: const EdgeInsets.only(bottom: 16), children: [
-          const Sezione('Gli sponsor del Palio'),
-          for (final a in amici) _Amico(a),
-        ]);
-      },
-    );
-  }
-}
-
-class _Amico extends StatelessWidget {
-  final Json a;
-  const _Amico(this.a);
-
-  @override
-  Widget build(BuildContext context) {
-    final sito = '${a['sito']}';
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: sito.isEmpty ? null : () => launchUrl(Uri.parse(sito), mode: LaunchMode.externalApplication),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(children: [
-            Container(
-              width: 96,
-              height: 64,
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
-              child: Image.network(TesoroApi.instance.indirizzo(a['logo'] as String), fit: BoxFit.contain, errorBuilder: (_, __, ___) => const Icon(Icons.storefront)),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('${a['nome']}', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-                if ('${a['indirizzo']}'.isNotEmpty) Text('${a['indirizzo']}', style: Theme.of(context).textTheme.bodySmall),
-              ]),
-            ),
-            if ('${a['indirizzo']}'.isNotEmpty)
-              IconButton(
-                tooltip: 'Indicazioni',
-                icon: const Icon(Icons.directions, color: oroScuro),
-                onPressed: () => launchUrl(Uri.parse('https://www.google.com/maps/dir/?api=1&destination=${Uri.encodeComponent('${a['indirizzo']}')}'),
-                    mode: LaunchMode.externalApplication),
-              ),
-          ]),
-        ),
-      ),
-    );
   }
 }

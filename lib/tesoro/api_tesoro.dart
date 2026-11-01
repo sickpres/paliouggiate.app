@@ -81,7 +81,6 @@ class TesoroApi {
   Future<Json> config() async => _m(await _chiama('GET', ''));
   Future<List<Json>> avatar() async => [for (final x in await _chiama('GET', '/avatar') as List) _m(x)];
   Future<Json> classifica() async => _m(await _chiama('GET', '/classifica'));
-  Future<List<Json>> amici() async => [for (final x in await _chiama('GET', '/amici') as List) _m(x)];
 
   Future<Json> iscrivi({required int avatar, required int rione, String invito = ''}) async {
     final r = _m(await _chiama('POST', '/giocatore', {'avatar_id': avatar, 'rione_id': rione, if (invito.trim().isNotEmpty) 'invito': invito.trim()}));

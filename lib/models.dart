@@ -68,7 +68,7 @@ class Voce {
   final String luogo;
   final String luogoPioggia; // dove si fa se piove, vuoto se non indicato
   final String note;
-  // categoria d'eta' del gioco dal portale: 'tutti' | 'adulti' (adulti e ragazzi) | 'bambini' | 'anziani'; vuota per gli eventi
+  // categoria d'eta' del gioco dal portale: 'tutti' | 'adulti' (adulti e ragazzi) | 'bambini'; vuota per gli eventi
   final String categoria;
   Voce({
     required this.genere,
