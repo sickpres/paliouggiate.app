@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -13,6 +12,7 @@ import '../tema.dart';
 import '../widgets/comuni.dart';
 import 'api_tesoro.dart';
 import 'classifica.dart';
+import 'immagine_adattata.dart';
 import 'info.dart';
 import 'sfide.dart';
 import 'tavolo.dart';
@@ -307,7 +307,7 @@ class _PaginaIscrizioneState extends State<PaginaIscrizione> {
 
 // ---------- mappa dei tre livelli ----------
 // Sfondo: la mappa illustrata con il sentiero rosso e la X del tesoro (assets/mappa_tesoro.webp, 1024 x 2304: la mappa
-// 1024 x 1536 con la pergamena allungata sopra e sotto, cosi' riempie lo schermo senza tagliare i lati). Sopra, per
+// 1024 x 1536 con la pergamena allungata sopra e sotto; si adatta con ImmagineAdattata). Sopra, per
 // ogni livello, uno stemma tondo accanto al sentiero.
 const _coloriLivello = [Color(0xFFE0A100), Color(0xFF2F6FD0), Color(0xFFD23B3B)];
 const _grigio = Color(0xFF8A8F98);
@@ -320,7 +320,7 @@ class _Mappa extends StatelessWidget {
   final VoidCallback vaiAlleSfide;
   const _Mappa({required this.io, required this.cfg, required this.aggiorna, required this.vaiAlleSfide});
 
-  static const _larghezza = 1024.0, _altezza = 2304.0, _sopra = 384.0; // la mappa vera comincia a y = 384
+  static const _sopra = 384.0; // la mappa vera comincia a y = 384
   // centro degli stemmi in pixel della mappa vera (1024 x 1536): rotonda in basso, ingresso della piazza, salita
   static const _punti = [Offset(385, 1335), Offset(140, 665), Offset(700, 560)];
 
@@ -329,34 +329,30 @@ class _Mappa extends StatelessWidget {
     final livello = (io['giocatore'] as Json)['livello'] as int;
     final fatte = io['fatte'] as Json;
     final sfide = [for (final s in cfg['sfide'] as List) Map<String, dynamic>.from(s as Map)];
-    // fissa: non scorre (niente trascinamento per aggiornare, i dati si aggiornano tornando dai livelli)
-    return LayoutBuilder(builder: (context, c) {
-      final w = c.maxWidth, h = c.maxHeight;
-      // come BoxFit.cover centrato: scala e spostamento dell'immagine
-      final scala = math.max(w / _larghezza, h / _altezza);
-      final dx = (w - _larghezza * scala) / 2, dy = (h - _altezza * scala) / 2;
-      return SizedBox(
-        width: w,
-        height: h,
-        child: Stack(clipBehavior: Clip.hardEdge, children: [
-          Positioned.fill(child: Image.asset('assets/mappa_tesoro.webp', fit: BoxFit.cover)),
-          for (var i = 0; i < 3; i++)
-            Positioned(
-              left: dx + _punti[i].dx * scala - _Tappa.larghezza / 2,
-              top: dy + (_sopra + _punti[i].dy) * scala - _Tappa.lato / 2,
-              child: _Tappa(
-                numero: i + 1,
-                stato: i + 1 < livello ? 'fatto' : i + 1 == livello ? 'corrente' : 'chiuso',
-                fatte: sfide.where((s) => s['livello'] == i + 1 && fatte.containsKey(s['chiave'])).length,
-                totale: sfide.where((s) => s['livello'] == i + 1).length,
-                onTap: i + 1 > livello
-                    ? () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Completa le sfide del livello precedente per sbloccarlo.')))
-                    : () => mostraLivello(context, i + 1, io, sfide.where((s) => s['livello'] == i + 1).toList(), fatte, aggiorna, vaiAlleSfide),
-              ),
+    // fissa: non scorre (niente trascinamento per aggiornare, i dati si aggiornano tornando dai livelli). Dal 03.11.2026
+    // la mappa vera si vede sempre intera, con i tre stemmi: sui telefoni corti si rimpicciolisce e ai lati c'e' la
+    // stessa mappa sfocata
+    return ImmagineAdattata(
+      immagine: const AssetImage('assets/mappa_tesoro.webp'),
+      dimensioni: MappaDiRiserva.dimensioni,
+      sicura: MappaDiRiserva.sicura,
+      sopra: (scala, origine) => [
+        for (var i = 0; i < 3; i++)
+          Positioned(
+            left: origine.dx + _punti[i].dx * scala - _Tappa.larghezza / 2,
+            top: origine.dy + (_sopra + _punti[i].dy) * scala - _Tappa.lato / 2,
+            child: _Tappa(
+              numero: i + 1,
+              stato: i + 1 < livello ? 'fatto' : i + 1 == livello ? 'corrente' : 'chiuso',
+              fatte: sfide.where((s) => s['livello'] == i + 1 && fatte.containsKey(s['chiave'])).length,
+              totale: sfide.where((s) => s['livello'] == i + 1).length,
+              onTap: i + 1 > livello
+                  ? () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Completa le sfide del livello precedente per sbloccarlo.')))
+                  : () => mostraLivello(context, i + 1, io, sfide.where((s) => s['livello'] == i + 1).toList(), fatte, aggiorna, vaiAlleSfide),
             ),
-        ]),
-      );
-    });
+          ),
+      ],
+    );
   }
 }
 
@@ -629,6 +625,24 @@ class _SchedaSfidaState extends State<_SchedaSfida> {
             ]);
           }
       }
+    } else if (chiave == 'enigma' && (io['enigma'] as Json?)?['parola'] != null) {
+      // enigma risolto (dal 03.11.2026): messaggio e parola chiave restano come promemoria per il Campo base
+      final e = io['enigma'] as Json;
+      azioni.addAll([
+        if (e['messaggio'] != null)
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(color: const Color(0xFFF3E2B8), borderRadius: BorderRadius.circular(12)),
+            child: Text('${e['messaggio']}', style: const TextStyle(fontSize: 17, color: Color(0xFF3F2410), fontWeight: FontWeight.w600)),
+          ),
+        const SizedBox(height: 8),
+        Row(children: [
+          const Icon(Icons.key_rounded, color: _verde),
+          const SizedBox(width: 8),
+          Text('La tua parola chiave: ', style: t.textTheme.bodyLarge),
+          Expanded(child: Text('${e['parola']}', style: t.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800, color: _verde))),
+        ]),
+      ]);
     }
     // un box per sfida: bordo e intestazione nel colore del livello (verde quando e' fatta), contenuto bianco sotto
     final colore = widget.fatta ? _verde : _coloriLivello[(_livelloSfide[chiave] ?? 1) - 1];

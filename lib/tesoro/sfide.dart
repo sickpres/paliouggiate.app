@@ -9,6 +9,7 @@ import 'api_tesoro.dart';
 
 // Memory e Puzzle (4 colonne per 5 righe) e Differenze, entro il tempo scelto nel pannello: al livello 1 sono
 // «Riscalda i neuroni», al livello 2 di nuovo, con i tempi del livello 2, «Neuroni impazziti» (dal 01.11.2026).
+// Dal livello 3 (dal 03.11.2026) si giocano liberamente, con i tempi del livello 2 e senza punti.
 // Il tempo lo misura il portale (dall'inizio alla fine della partita); qui c'e' il conto alla rovescia.
 
 class PaginaSfide extends StatelessWidget {
@@ -19,10 +20,6 @@ class PaginaSfide extends StatelessWidget {
   int get _livello => (io['giocatore'] as Json)['livello'] as int;
 
   Future<void> _gioca(BuildContext context, String gioco) async {
-    if (_livello > 2) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Le sfide sono già completate: ora si gioca sulla mappa.')));
-      return;
-    }
     final partita = await prova(context, () => TesoroApi.instance.iniziaSfida(gioco));
     if (partita == null || !context.mounted) return;
     await Navigator.of(context).push(MaterialPageRoute(
@@ -39,18 +36,28 @@ class PaginaSfide extends StatelessWidget {
     // dal livello 2 in poi i risultati di «Neuroni impazziti»
     final n = (_livello >= 2 ? io['impazziti'] : io['neuroni']) as Json;
     final tempi = n['tempi'] as Json;
-    String stato(String g) => n[g] == null ? '${tempi[g]} secondi: ce la fai?' : 'Fatto in ${n[g]} secondi';
+    final libero = _livello > 2;
+    String stato(String g) => libero
+        ? '${tempi[g]} secondi · senza punti'
+        : n[g] == null
+            ? '${tempi[g]} secondi: ce la fai?'
+            : 'Fatto in ${n[g]} secondi';
     return ListView(padding: const EdgeInsets.all(16), children: [
       Padding(
         padding: const EdgeInsets.only(bottom: 12),
-        child: Text(_livello >= 2 ? 'Neuroni impazziti · livello 2' : 'Riscalda i neuroni · livello 1',
+        child: Text(libero ? 'Gioco libero' : _livello >= 2 ? 'Neuroni impazziti · livello 2' : 'Riscalda i neuroni · livello 1',
             style: const TextStyle(fontFamily: fontTitoli, fontSize: 22, fontWeight: FontWeight.w800)),
       ),
-      _Riquadro(titolo: 'Memory', icona: Icons.style, sotto: stato('memory'), fatto: n['memory'] != null, onTap: () => _gioca(context, 'memory')),
+      if (libero)
+        const Padding(
+          padding: EdgeInsets.only(bottom: 12),
+          child: Text('Hai superato il livello 2: gioca quando vuoi per allenarti. Non si guadagnano punti.'),
+        ),
+      _Riquadro(titolo: 'Memory', icona: Icons.style, sotto: stato('memory'), fatto: !libero && n['memory'] != null, onTap: () => _gioca(context, 'memory')),
       const SizedBox(height: 16),
-      _Riquadro(titolo: 'Puzzle', icona: Icons.extension, sotto: stato('puzzle'), fatto: n['puzzle'] != null, onTap: () => _gioca(context, 'puzzle')),
+      _Riquadro(titolo: 'Puzzle', icona: Icons.extension, sotto: stato('puzzle'), fatto: !libero && n['puzzle'] != null, onTap: () => _gioca(context, 'puzzle')),
       const SizedBox(height: 16),
-      _Riquadro(titolo: 'Differenze', icona: Icons.compare, sotto: stato('differenze'), fatto: n['differenze'] != null, onTap: () => _gioca(context, 'differenze')),
+      _Riquadro(titolo: 'Differenze', icona: Icons.compare, sotto: stato('differenze'), fatto: !libero && n['differenze'] != null, onTap: () => _gioca(context, 'differenze')),
     ]);
   }
 }
@@ -137,7 +144,7 @@ mixin _ContoAllaRovescia<T extends StatefulWidget> on State<T> {
       context: context,
       builder: (c) => AlertDialog(
         title: Text(ok ? 'Bravo!' : 'Peccato'),
-        content: Text(ok ? 'Completato in ${r!['secondi']} secondi.' : 'Il tempo non è valido: riprova.'),
+        content: Text(ok ? 'Completato in ${r!['secondi']} secondi.${r['libera'] == true ? ' Partita libera: niente punti.' : ''}' : 'Il tempo non è valido: riprova.'),
         actions: [TextButton(onPressed: () => Navigator.of(c).pop(), child: const Text('OK'))],
       ),
     );
